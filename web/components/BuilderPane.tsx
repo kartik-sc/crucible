@@ -72,12 +72,14 @@ export function BuilderPane({
             >
               {lines.map((line, i) => (
                 <div key={i} className="flex gap-4">
-                  <span
-                    aria-hidden
-                    className="w-6 shrink-0 select-none text-right text-bone-faint"
-                  >
-                    {i + 1}
-                  </span>
+                  {domain === "code" && (
+                    <span
+                      aria-hidden
+                      className="w-6 shrink-0 select-none text-right text-bone-faint"
+                    >
+                      {i + 1}
+                    </span>
+                  )}
                   <code className="whitespace-pre-wrap">{line || " "}</code>
                 </div>
               ))}

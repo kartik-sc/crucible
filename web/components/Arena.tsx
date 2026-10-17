@@ -5,9 +5,11 @@ import { SwarmPane } from "./SwarmPane";
 import { RobustnessDial } from "./RobustnessDial";
 import { RoundTimeline } from "./RoundTimeline";
 import { DomainToggle } from "./DomainToggle";
+import { ModeToggle, type RunMode } from "./ModeToggle";
 import { QueryInput } from "./QueryInput";
 import { RunStatusBanner } from "./RunStatusBanner";
 import { IdleInvitation } from "./IdleInvitation";
+import { PyodideMirror } from "./PyodideMirror";
 
 export interface ArenaProps {
   state: ArenaState;
@@ -20,6 +22,9 @@ export interface ArenaProps {
   status: RunStatus;
   running: boolean;
   isLive: boolean;
+  canGoLive: boolean;
+  mode: RunMode;
+  onModeChange: (mode: RunMode) => void;
 }
 
 export function Arena({
@@ -33,8 +38,12 @@ export function Arena({
   status,
   running,
   isLive,
+  canGoLive,
+  mode,
+  onModeChange,
 }: ArenaProps) {
   const showInvitation = isLive && status === "idle";
+  const showMirror = !showInvitation && state.domain === "code" && state.builder !== null;
 
   return (
     <div className="relative z-10 mx-auto flex min-h-screen max-w-[1400px] flex-col px-4 sm:px-6">
@@ -42,15 +51,16 @@ export function Arena({
         <div>
           <div className="flex items-center gap-2.5">
             <h1 className="font-serif text-2xl tracking-tight text-bone">CRUCIBLE</h1>
-            <span
-              className={[
-                "rounded-full border px-2 py-0.5 font-sans text-[9px] uppercase tracking-label",
-                isLive ? "border-survived/40 text-survived" : "border-hairline text-bone-faint",
-              ].join(" ")}
-              title={isLive ? "Streaming from the live backend" : "Running the client-side mock"}
-            >
-              {isLive ? "Live" : "Demo"}
-            </span>
+            {canGoLive ? (
+              <ModeToggle value={mode} onChange={onModeChange} />
+            ) : (
+              <span
+                className="rounded-full border border-hairline px-2 py-0.5 font-sans text-[9px] uppercase tracking-label text-bone-faint"
+                title="Running the client-side mock"
+              >
+                Demo
+              </span>
+            )}
           </div>
           <p className="mt-0.5 font-sans text-[11px] uppercase tracking-label text-bone-dim">
             The answer is on trial
@@ -84,6 +94,10 @@ export function Arena({
           </div>
         )}
       </main>
+
+      {showMirror && state.builder && (
+        <PyodideMirror code={state.builder.contentPreview} attacks={state.attacks} />
+      )}
 
       <footer className="mt-1 border-t border-hairline">
         <RoundTimeline state={state} />

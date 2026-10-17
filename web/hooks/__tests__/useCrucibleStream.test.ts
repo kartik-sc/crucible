@@ -38,4 +38,16 @@ describe("useCrucibleStream", () => {
     await waitFor(() => expect(result.current.status).toBe("error"));
     expect(result.current.state.error?.message).toBe("boom");
   });
+
+  it("reset returns to a clean idle state (for flipping to live)", async () => {
+    const { result } = renderHook(() => useCrucibleStream(MOCK_RUN, immediate));
+
+    act(() => result.current.start(MOCK_RUN));
+    await waitFor(() => expect(result.current.status).toBe("done"));
+
+    act(() => result.current.reset({ domain: "factual", query: "anything" }));
+    expect(result.current.status).toBe("idle");
+    expect(result.current.state.attacks).toHaveLength(0);
+    expect(result.current.state.query).toBe("anything");
+  });
 });

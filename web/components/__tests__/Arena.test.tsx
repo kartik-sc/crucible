@@ -15,6 +15,9 @@ function renderArena(overrides: Partial<ArenaProps> = {}) {
     status: "running",
     running: false,
     isLive: false,
+    canGoLive: false,
+    mode: "demo",
+    onModeChange: vi.fn(),
     ...overrides,
   };
   return render(<Arena {...props} />);
@@ -96,5 +99,21 @@ describe("Arena — live-mode states", () => {
     renderArena({ isLive: false, status: "idle" });
     expect(screen.queryByText("Put an answer on trial")).not.toBeInTheDocument();
     expect(screen.getByText("The defense")).toBeInTheDocument();
+  });
+});
+
+describe("Arena — judge-live mode (TR-27)", () => {
+  it("shows only the Demo badge when no backend is configured", () => {
+    renderArena({ canGoLive: false });
+    expect(screen.getByText("Demo")).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Live" })).not.toBeInTheDocument();
+  });
+
+  it("offers a Demo/Live toggle when a backend is configured", () => {
+    const onModeChange = vi.fn();
+    renderArena({ canGoLive: true, mode: "demo", onModeChange });
+    expect(screen.getByRole("tab", { name: "Demo" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Live" }));
+    expect(onModeChange).toHaveBeenCalledWith("live");
   });
 });

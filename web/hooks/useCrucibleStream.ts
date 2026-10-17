@@ -14,6 +14,7 @@ export interface UseCrucibleStream {
   isLive: boolean;
   start: (req: RunRequest) => void;
   stop: () => void;
+  reset: (req: RunRequest) => void;
 }
 
 /**
@@ -33,6 +34,15 @@ export function useCrucibleStream(
   const stop = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
+    setRunning(false);
+  }, []);
+
+  // Abort any run and return to a clean idle state (used when flipping to live mode).
+  const reset = useCallback((req: RunRequest) => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setState(createInitialState(req));
+    setReceived(false);
     setRunning(false);
   }, []);
 
@@ -81,5 +91,5 @@ export function useCrucibleStream(
           : "connecting"
         : "idle";
 
-  return { state, status, isLive: IS_LIVE, start, stop };
+  return { state, status, isLive: IS_LIVE, start, stop, reset };
 }
