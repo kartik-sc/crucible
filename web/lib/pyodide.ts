@@ -76,9 +76,14 @@ function injectScript(src: string): Promise<void> {
     el.async = true;
     el.dataset.pyodide = "true";
     el.addEventListener("load", () => resolve(), { once: true });
-    el.addEventListener("error", () => reject(new Error("failed to load the Pyodide runtime")), {
-      once: true,
-    });
+    el.addEventListener(
+      "error",
+      () => {
+        el.remove(); // drop the dead tag so a retry re-injects instead of short-circuiting
+        reject(new Error("failed to load the Pyodide runtime"));
+      },
+      { once: true },
+    );
     document.head.appendChild(el);
   });
 }

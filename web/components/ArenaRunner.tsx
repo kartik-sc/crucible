@@ -67,6 +67,7 @@ export function ArenaRunner() {
     setMode(next);
     modeRef.current = next;
     if (next === "live") {
+      lastReq.current = { domain, query }; // retry before submit should re-arm, not replay the demo
       reset({ domain, query }); // clean idle — the judge submits their own input
     } else {
       const req = mockRunFor(domain);

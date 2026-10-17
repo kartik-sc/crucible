@@ -21,12 +21,21 @@ const mono = JetBrains_Mono({
   display: "swap",
 });
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+function resolveSiteUrl(): URL {
+  const raw = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  try {
+    return new URL(raw);
+  } catch {
+    return new URL("http://localhost:3000");
+  }
+}
+
+const SITE_URL = resolveSiteUrl();
 const DESCRIPTION =
   "Trust infrastructure for AI outputs. Code goes in, adversaries hammer it, only what survives reaches you.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
+  metadataBase: SITE_URL,
   title: "CRUCIBLE — the arena",
   description: DESCRIPTION,
   openGraph: {

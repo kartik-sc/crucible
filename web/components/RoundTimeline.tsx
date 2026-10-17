@@ -16,7 +16,9 @@ export function RoundTimeline({ state }: { state: ArenaState }) {
       <div className="flex items-center gap-4">
         {dots.map((n) => {
           const isCurrent = n === round && running;
-          const isDone = n < round || (n === round && !running && fsm === "done");
+          // On error we freeze mid-run: show the round we reached as reached, not "not started".
+          const settled = fsm === "done" || fsm === "error";
+          const isDone = n < round || (n === round && !running && settled);
           return (
             <div key={n} className="flex items-center gap-2">
               <motion.span

@@ -36,6 +36,7 @@ function deriveProbes(code: string, attacks: AttackView[]): Probe[] {
 function passed(result: HarnessResult, expected?: string): boolean | undefined {
   if (!expected) return undefined;
   const actual = result.output ?? result.error ?? "";
+  if (!actual) return false;
   return actual.includes(expected) || expected.includes(actual);
 }
 

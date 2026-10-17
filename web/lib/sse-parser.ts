@@ -81,7 +81,9 @@ export async function* fetchCrucibleStream(
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
-      buffer += value.replace(/\r\n/g, "\n");
+      // Normalize on the whole buffer, not the chunk: a \r\n\r\n frame separator
+      // can straddle two reads, and per-chunk replacement would miss it.
+      buffer = (buffer + value).replace(/\r\n/g, "\n");
 
       let brk: number;
       while ((brk = buffer.indexOf("\n\n")) !== -1) {

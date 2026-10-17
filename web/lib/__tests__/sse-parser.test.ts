@@ -1,5 +1,29 @@
-import { describe, it, expect } from "vitest";
-import { parseSseFrame } from "../sse-parser";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { parseSseFrame, fetchCrucibleStream } from "../sse-parser";
+import type { SseEvent } from "../types";
+
+function streamOf(chunks: string[]): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
+  let i = 0;
+  return new ReadableStream({
+    pull(controller) {
+      if (i < chunks.length) controller.enqueue(encoder.encode(chunks[i++]));
+      else controller.close();
+    },
+  });
+}
+
+async function collect(chunks: string[]): Promise<SseEvent[]> {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => new Response(streamOf(chunks), { status: 200 })),
+  );
+  const out: SseEvent[] = [];
+  for await (const e of fetchCrucibleStream("/run", { domain: "code", query: "q" }, new AbortController().signal)) {
+    out.push(e);
+  }
+  return out;
+}
 
 describe("parseSseFrame", () => {
   it("merges the event name and data payload into a typed event", () => {
@@ -30,5 +54,21 @@ describe("parseSseFrame", () => {
 
   it("drops malformed JSON instead of throwing", () => {
     expect(parseSseFrame("event: STATE\ndata: {not json}")).toBeNull();
+  });
+});
+
+describe("fetchCrucibleStream", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("reassembles a CRLF frame separator split across two reads", async () => {
+    const frame = 'event: STATE\r\ndata: {"state":"GENERATE","round":1}\r\n';
+    const whole = frame + "\r\n" + frame; // two frames joined by the blank-line separator
+    // Cut mid-separator: "\r\n\r\n" → "...\r\n\r" | "\n...". Per-chunk normalization
+    // would miss this boundary; buffer-level normalization must still find it.
+    const cut = whole.indexOf("\r\n\r\n") + 3;
+    const events = await collect([whole.slice(0, cut), whole.slice(cut)]);
+    expect(events).toHaveLength(2);
+    expect(events[0]).toMatchObject({ type: "STATE", state: "GENERATE", round: 1 });
+    expect(events[1]).toMatchObject({ type: "STATE", state: "GENERATE", round: 1 });
   });
 });
