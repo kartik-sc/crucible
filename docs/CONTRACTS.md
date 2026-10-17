@@ -144,9 +144,24 @@ ATTACK     { attack }                 // streamed per attack as it is produced
 VERDICT    { verdict }                // streamed per verification
 SCORE      { robustness, newBreaks, survived, landed, round }
 ROUND_END  { round, newBreaks }
-DONE       { reason: "converged" | "max_rounds", robustness }
-ERROR      { where, message }         // never crash the stream
+DONE       { reason: "converged" | "max_rounds" | "gated", robustness }
+ERROR      { where, message, fatal }  // never crash the stream
 ```
+
+Stream semantics (M1, pending sign-off from B and C):
+
+- **`gated`**: the Heavy-Answer Gate judged the answer trivial, so the loop was
+  skipped. `robustness` is `null` (nothing was attacked).
+- **`fatal`**: `false` = something degraded but the run continues (e.g. one breaker
+  died, `where: "breaker:<role>"`). `true` = the run stopped; ERROR is the last
+  event and the last BUILDER version is the last good one.
+- **VERDICT re-emits**: from round 2, VERIFY re-runs every attack in the ledger
+  against the patched version. A VERDICT can therefore arrive for an `attackId`
+  already shown; update that row in place (struck → green = the patch fixed it).
+- **`converged`** = the current version fails no verified attack (stricter than
+  "zero new breaks": an unfixed break triggers another patch round).
+- SSE framing: `event: <TYPE>\ndata: <json>\n\n`. `POST /run` needs a fetch-based
+  SSE reader; `GET /mock/run?domain=…` works with a plain `EventSource`.
 
 ---
 
