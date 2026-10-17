@@ -1,0 +1,32 @@
+# secrets
+.env
+.env.*
+!.env.example
+*.key
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# node
+node_modules/
+.next/
+out/
+dist/
+*.log
+npm-debug.log*
+
+# os / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# build / tmp
+tmp/
+.cache/
+coverage/
