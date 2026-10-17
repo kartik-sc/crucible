@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Tribunal / evidence-dark — deep cold slate, parchment ink, verdict grammar */
+  --ink: #0b0e14;
+  --ink-2: #11151f;
+  --ink-3: #19202e;
+  --hairline: rgba(221, 226, 236, 0.09);
+
+  --bone: #e9e3d4;
+  --bone-dim: #969bab;
+  --bone-faint: #5c6273;
+
+  /* single hot accent (brand chrome / focus) */
+  --accent: #e0a94a;
+
+  /* TR-25 verdict grammar */
+  --survived: #46d9a0;
+  --unsupported: #e0a94a;
+  --struck: #e5484d;
+}
+
+* {
+  border-color: var(--hairline);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--ink);
+  color: var(--bone);
+  /* layered atmosphere: a faint top-lit vignette over the slate */
+  background-image:
+    radial-gradient(120% 80% at 50% -10%, rgba(224, 169, 74, 0.05), transparent 60%),
+    radial-gradient(90% 60% at 50% 120%, rgba(11, 14, 20, 0.6), transparent 70%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* fine grain so the dark never reads as flat #000 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ledger hairline — a thin ruled line used to separate evidence rows */
+.rule-ledger {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 27px,
+    var(--hairline) 27px,
+    var(--hairline) 28px
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
