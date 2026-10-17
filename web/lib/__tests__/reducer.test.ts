@@ -33,6 +33,11 @@ describe("reduce — single events", () => {
     expect(s.fsm).toBe("verify");
   });
 
+  it("STATE accepts lowercase wire values (issue #4)", () => {
+    const s = reduce(base(), { type: "STATE", state: "patch", round: 2 });
+    expect(s.fsm).toBe("patch");
+  });
+
   it("BUILDER records version and preview", () => {
     const s = reduce(base(), {
       type: "BUILDER",
@@ -110,6 +115,34 @@ describe("reduce — verdict color (TR-25)", () => {
   });
 });
 
+describe("reduce — structured NLI label (issue #5, forward-compatible)", () => {
+  const withFactual = reduce(base(), { type: "ATTACK", attack: factualAttack("f1") });
+
+  it("CONTRADICTED label → struck", () => {
+    const s = reduce(withFactual, {
+      type: "VERDICT",
+      verdict: { attackId: "f1", landed: true, actual: "2022", evidence: "x", label: "CONTRADICTED" },
+    });
+    expect(s.attacks[0]?.verdict).toBe("struck");
+  });
+
+  it("UNSUPPORTED label → unsupported, overriding the evidence sniff", () => {
+    const s = reduce(withFactual, {
+      type: "VERDICT",
+      verdict: { attackId: "f1", landed: true, actual: "x", evidence: "CONTRADICTED-looking text", label: "UNSUPPORTED" },
+    });
+    expect(s.attacks[0]?.verdict).toBe("unsupported");
+  });
+
+  it("SUPPORTED label → survived even when landed is true", () => {
+    const s = reduce(withFactual, {
+      type: "VERDICT",
+      verdict: { attackId: "f1", landed: true, actual: "x", evidence: "y", label: "SUPPORTED" },
+    });
+    expect(s.attacks[0]?.verdict).toBe("survived");
+  });
+});
+
 describe("reduce — a patch flips a prior landed break to survived", () => {
   it("re-verifying the same attack after a patch updates it in place", () => {
     const events: SseEvent[] = [
@@ -153,6 +186,21 @@ describe("reduce — scoring and rounds", () => {
     expect(s.fsm).toBe("done");
     expect(s.done).toEqual({ reason: "converged", robustness: 0.95 });
     expect(s.robustness).toBe(0.95);
+  });
+
+  it("DONE.content overrides the builder preview as the hardened answer (issue #6)", () => {
+    const withBuilder = reduce(base(), {
+      type: "BUILDER",
+      version: 2,
+      contentPreview: "preview",
+    });
+    const s = reduce(withBuilder, {
+      type: "DONE",
+      reason: "converged",
+      robustness: 0.9,
+      content: "final full answer",
+    });
+    expect(s.builder).toEqual({ version: 2, contentPreview: "final full answer" });
   });
 });
 

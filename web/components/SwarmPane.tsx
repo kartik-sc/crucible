@@ -13,7 +13,7 @@ export function SwarmPane({ attacks }: { attacks: AttackView[] }) {
   const active = new Set(attacks.map((a) => a.breaker));
 
   return (
-    <section className="flex min-h-0 flex-col" aria-label="Breaker swarm">
+    <section className="flex min-h-[300px] flex-col lg:min-h-0" aria-label="Breaker swarm">
       <header className="border-b border-hairline px-5 py-4">
         <div className="flex items-baseline justify-between">
           <div>
@@ -50,9 +50,7 @@ export function SwarmPane({ attacks }: { attacks: AttackView[] }) {
             No attacks yet — the swarm is circling.
           </li>
         ) : (
-          attacks.map((attack, i) => (
-            <AttackRow key={attack.id} attack={attack} index={i} />
-          ))
+          attacks.map((attack) => <AttackRow key={attack.id} attack={attack} />)
         )}
       </ol>
     </section>

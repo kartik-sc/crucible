@@ -21,10 +21,24 @@ const mono = JetBrains_Mono({
   display: "swap",
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const DESCRIPTION =
+  "Trust infrastructure for AI outputs. Code goes in, adversaries hammer it, only what survives reaches you.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "CRUCIBLE — the arena",
-  description:
-    "Trust infrastructure for AI outputs. Code goes in, adversaries hammer it, only what survives reaches you.",
+  description: DESCRIPTION,
+  openGraph: {
+    title: "CRUCIBLE — the answer is on trial",
+    description: DESCRIPTION,
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CRUCIBLE — the answer is on trial",
+    description: DESCRIPTION,
+  },
 };
 
 export default function RootLayout({

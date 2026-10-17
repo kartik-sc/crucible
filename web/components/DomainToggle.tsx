@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { motion } from "framer-motion";
 import type { Domain } from "@/lib/view-model";
 import { DOMAINS } from "@/lib/view-model";
@@ -11,9 +10,15 @@ const LABELS: Record<Domain, string> = {
   math: "Math",
 };
 
-export function DomainToggle({ initial = "code" }: { initial?: Domain }) {
-  const [selected, setSelected] = useState<Domain>(initial);
-
+export function DomainToggle({
+  value,
+  onChange,
+  disabled = false,
+}: {
+  value: Domain;
+  onChange: (domain: Domain) => void;
+  disabled?: boolean;
+}) {
   return (
     <div
       role="tablist"
@@ -21,16 +26,18 @@ export function DomainToggle({ initial = "code" }: { initial?: Domain }) {
       className="inline-flex items-center gap-1 rounded-full border border-hairline bg-ink-2/70 p-1"
     >
       {DOMAINS.map((domain) => {
-        const isActive = domain === selected;
+        const isActive = domain === value;
         return (
           <button
             key={domain}
             role="tab"
             type="button"
             aria-selected={isActive}
-            onClick={() => setSelected(domain)}
+            disabled={disabled}
+            onClick={() => onChange(domain)}
             className={[
               "relative rounded-full px-3.5 py-1.5 font-sans text-xs transition-colors duration-150",
+              "disabled:cursor-not-allowed disabled:opacity-60",
               isActive ? "text-ink" : "text-bone-dim hover:text-bone",
             ].join(" ")}
           >

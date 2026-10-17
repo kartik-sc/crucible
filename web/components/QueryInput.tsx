@@ -1,14 +1,25 @@
 "use client";
 
-import { useState } from "react";
-
-export function QueryInput({ initial = "" }: { initial?: string }) {
-  const [value, setValue] = useState(initial);
+export function QueryInput({
+  value,
+  onChange,
+  onSubmit,
+  running,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
+  running: boolean;
+}) {
+  const canSubmit = value.trim().length > 0 && !running;
 
   return (
     <form
-      className="flex items-center gap-3"
-      onSubmit={(e) => e.preventDefault()}
+      className="flex flex-col gap-3 sm:flex-row sm:items-center"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (canSubmit) onSubmit();
+      }}
       aria-label="Submit an answer for trial"
     >
       <div className="relative flex-1">
@@ -20,18 +31,17 @@ export function QueryInput({ initial = "" }: { initial?: string }) {
         </span>
         <input
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => onChange(e.target.value)}
           placeholder="State the spec to put on trial…"
           className="w-full rounded-lg border border-hairline bg-ink-2/60 py-3 pl-9 pr-4 font-sans text-sm text-bone placeholder:text-bone-faint focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/30"
         />
       </div>
       <button
         type="submit"
-        disabled
-        title="Wiring arrives in Step 3"
-        className="shrink-0 rounded-lg border border-accent/40 px-5 py-3 font-sans text-xs uppercase tracking-label text-accent transition-opacity disabled:opacity-40"
+        disabled={!canSubmit}
+        className="shrink-0 rounded-lg border border-accent/40 px-5 py-3 font-sans text-xs uppercase tracking-label text-accent transition-opacity hover:bg-accent/5 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        Put on trial
+        {running ? "On trial…" : "Put on trial"}
       </button>
     </form>
   );

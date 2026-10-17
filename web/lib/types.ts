@@ -57,11 +57,27 @@ export interface FactualAttack extends AttackBase {
 
 export type Attack = CodeAttack | MathAttack | FactualAttack;
 
+/** NLI entailment label for factual verdicts (CONTRACTS §0). */
+export type NliLabel = "SUPPORTED" | "CONTRADICTED" | "UNSUPPORTED";
+
 export interface Verdict {
   attackId: string;
   landed: boolean;
   actual: string;
   evidence: string;
+  /**
+   * Optional structured NLI label. Not yet in CONTRACTS — proposed to M1 (issue
+   * #5) so the amber-vs-red grammar (TR-25) need not be sniffed from `evidence`.
+   * The reducer prefers it when present and falls back to the string sniff when
+   * absent, so the frontend is correct either way.
+   */
+  label?: NliLabel;
+}
+
+/** POST /run request body (TRD §3). */
+export interface RunRequest {
+  query: string;
+  domain: Domain;
 }
 
 // ── §4 SSE events ──────────────────────────────────────────────────────────
@@ -85,7 +101,17 @@ export type SseEvent =
       round: number;
     }
   | { type: "ROUND_END"; round: number; newBreaks: number }
-  | { type: "DONE"; reason: "converged" | "max_rounds"; robustness: number }
+  | {
+      type: "DONE";
+      reason: "converged" | "max_rounds";
+      robustness: number;
+      /**
+       * Optional full hardened answer. Not yet in CONTRACTS — proposed to M1
+       * (issue #6). When absent, the latest BUILDER contentPreview is treated as
+       * the hardened answer; when present, it overrides it.
+       */
+      content?: string;
+    }
   | { type: "ERROR"; where: string; message: string };
 
 export type SseEventType = SseEvent["type"];

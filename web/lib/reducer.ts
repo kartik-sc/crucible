@@ -74,14 +74,23 @@ function toAttackView(attack: Attack): AttackView {
 }
 
 /**
- * Resolve the TR-25 color from a verdict. The contract's Verdict has no structured
- * NLI label, so an UNSUPPORTED (amber) factual result is distinguished from a
- * CONTRADICTED (red) one by sniffing the evidence string.
+ * Resolve the TR-25 color from a verdict.
  *
- * TODO(contract): propose a structured `Verdict.label?` so color is not derived
- * from free text (open issue #5 — raise with M1).
+ * Preferred path: a structured `Verdict.label` (proposed to M1, issue #5) maps
+ * directly to the color grammar. Fallback path (today's contract): derive from
+ * `landed`, distinguishing an UNSUPPORTED (amber) factual result from a
+ * CONTRADICTED (red) one by sniffing the free-text `evidence`. Either way the UI
+ * is correct, so no frontend change is needed once the field lands.
  */
 function verdictColor(kind: EvidenceKind, verdict: Verdict): VerdictColor {
+  switch (verdict.label) {
+    case "SUPPORTED":
+      return "survived";
+    case "UNSUPPORTED":
+      return "unsupported";
+    case "CONTRADICTED":
+      return "struck";
+  }
   if (!verdict.landed) return "survived";
   if (kind === "claimCheck" && /unsupported/i.test(verdict.evidence)) {
     return "unsupported";
@@ -148,13 +157,21 @@ export function reduce(state: ArenaState, event: SseEvent): ArenaState {
         rounds: upsertRound(state.rounds, event.round, event.newBreaks),
       };
 
-    case "DONE":
+    case "DONE": {
+      // The hardened answer is the latest builder content; an optional DONE.content
+      // (issue #6) overrides it when the backend provides the authoritative final.
+      const builder =
+        event.content != null && state.builder
+          ? { ...state.builder, contentPreview: event.content }
+          : state.builder;
       return {
         ...state,
         fsm: "done",
+        builder,
         robustness: event.robustness,
         done: { reason: event.reason, robustness: event.robustness },
       };
+    }
 
     case "ERROR":
       // Freeze the last good version; only surface the error (TR-6, NFR-4).

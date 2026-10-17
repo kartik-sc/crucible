@@ -25,7 +25,8 @@ export function RobustnessDial({ value }: { value: number | null }) {
   const number = useMotionValue(0);
 
   useEffect(() => {
-    progress.set(reduce ? target : target);
+    if (reduce) progress.jump(target);
+    else progress.set(target);
     const controls = animate(number, target, {
       duration: reduce ? 0 : 0.9,
       ease: [0.16, 1, 0.3, 1],
