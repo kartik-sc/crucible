@@ -8,6 +8,9 @@ export type Domain = "code" | "factual" | "math";
 
 export type WeaknessClass = "boundary" | "numeric_type" | "spec_gap" | "factual";
 
+/** Which evidence payload an attack carries (one-of, per CONTRACTS §1). */
+export type EvidenceKind = "test" | "computation" | "claimCheck";
+
 /** FSM transitions carried by the STATE event (TR-4). */
 export type FsmState =
   | "idle"
@@ -29,6 +32,7 @@ export type VerdictColor = "survived" | "unsupported" | "struck" | "pending";
 export interface AttackView {
   id: string;
   breaker: WeaknessClass;
+  kind: EvidenceKind;
   rationale: string;
   /** short human label of the probe, e.g. "fib(0) → 0" or "JWST launched 2021". */
   evidenceLabel: string;

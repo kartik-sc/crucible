@@ -20,6 +20,7 @@ export const DEMO_STATE: ArenaState = {
     {
       id: "atk_7f3",
       breaker: "boundary",
+      kind: "test",
       rationale: "n=0 edge case",
       evidenceLabel: "fib(0) → 0",
       verdict: "struck",
@@ -29,6 +30,7 @@ export const DEMO_STATE: ArenaState = {
     {
       id: "atk_9a1",
       breaker: "numeric_type",
+      kind: "test",
       rationale: "large n overflow",
       evidenceLabel: "fib(90) → 2880067194370816120",
       verdict: "survived",
@@ -38,6 +40,7 @@ export const DEMO_STATE: ArenaState = {
     {
       id: "atk_c22",
       breaker: "spec_gap",
+      kind: "test",
       rationale: "negative input unspecified",
       evidenceLabel: "fib(-1) → ValueError",
       verdict: "survived",
@@ -47,6 +50,7 @@ export const DEMO_STATE: ArenaState = {
     {
       id: "atk_e05",
       breaker: "factual",
+      kind: "claimCheck",
       rationale: "docstring claims O(1)",
       evidenceLabel: "claim: runs in O(1)",
       verdict: "unsupported",
@@ -56,6 +60,7 @@ export const DEMO_STATE: ArenaState = {
     {
       id: "atk_f71",
       breaker: "boundary",
+      kind: "test",
       rationale: "n=1 base case",
       evidenceLabel: "fib(1) → 1",
       verdict: "pending",
