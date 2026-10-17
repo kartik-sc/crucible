@@ -1,11 +1,24 @@
-# server — FastAPI backend (Render, always-on)
+# server — CRUCIBLE backend components
 
-Orchestration loop + Model Gateway + verifiers + model calls. Owners A and B.
+The server package contains the reusable backend pieces for the orchestration
+loop. The FastAPI entrypoint and loop FSM are not part of this integration yet.
 
 ```
-orchestrator/   # A: loop FSM, coordinator, ledger, gateway, sse
-breakers/       # B: builder + 4 breaker roles
-verifiers/      # B: pyexec (code/math), nli (factual), scorer
+orchestrator/   # contracts, configuration, gateway, parsing, signatures
+breakers/       # builder, LLM breakers, deterministic auditors, oracles
+verifiers/      # sandbox execution, static lints, factual NLI
+demo/           # deterministic fixtures used by the smoke script and tests
 ```
 
-Entry: `uvicorn app:app --reload`. Exposes `POST /run` (SSE stream) per CONTRACTS.md.
+The public integration points are:
+
+- `crucible.server.breakers.builder.Builder`
+- `crucible.server.breakers.breakers.make_swarm`
+- `crucible.server.breakers.auditors.make_auditors`
+- `crucible.server.breakers.oracles.LLMOracles`
+- `crucible.server.verifiers.pyexec.PyExecVerifier`
+- `crucible.server.verifiers.nli.NLIVerifier`
+- `crucible.server.orchestrator.contracts`
+
+The future FastAPI `/run` endpoint should call these components through the
+contracts documented in `docs/CONTRACTS.md`.
