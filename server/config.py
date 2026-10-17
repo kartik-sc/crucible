@@ -35,6 +35,9 @@ class Settings:
     cors_origins: tuple[str, ...] = field(
         default_factory=lambda: tuple(_list("CORS_ORIGINS", "http://localhost:3000"))
     )
+    # Vercel preview deploys for this project (crucible-*.vercel.app), matched as a
+    # whole-origin regex so we never open CORS to every *.vercel.app tenant.
+    cors_origin_regex: str = os.getenv("CORS_ORIGIN_REGEX", r"https://crucible-[a-z0-9-]+\.vercel\.app")
     # Pacing for fake agents so the arena animates like a real run.
     fake_delay_sec: float = float(os.getenv("FAKE_DELAY_SEC", "0.4"))
 
