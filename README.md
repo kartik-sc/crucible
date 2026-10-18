@@ -63,11 +63,13 @@ cd web && npm install && npm run dev
 
 ## Live demo
 
-> TODO: deployed URL here before submission.
+https://crucible-xi-eight.vercel.app/
 
 ## Team
 
-> TODO: three contributors.
+1. Udit H
+2. Ansh Patel
+3. Kartik Chandra
 
 ## License
 
