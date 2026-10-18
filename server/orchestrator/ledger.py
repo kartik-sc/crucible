@@ -43,6 +43,10 @@ class Ledger:
         e = self._entries[sig]
         if verdict is None:
             e.settled = False
+        elif e.ever_landed and not verdict.landed and verdict.label == "invalid":
+            # A patch that makes a landed break uncheckable (e.g. drops the ANSWER: line)
+            # has not fixed it: keep the landed ruling so the loop patches again.
+            pass
         else:
             e.verdict, e.settled = verdict, True
             e.ever_landed |= verdict.landed

@@ -100,6 +100,19 @@ def test_ledger_digest_tracks_tried_survivors_landed():
     assert ledger.failing() == [] and [x.signature for x in ledger.digest().landed] == [a.signature]
 
 
+def test_landed_break_made_uncheckable_is_not_fixed():
+    ledger = Ledger()
+    a = atk(test={"input": "0", "expected": "0"})
+    a.signature = signature(a)
+    ledger.add(a, 1)
+    ledger.record(a.signature, Verdict(attack_id="a", landed=True, label="fail"))
+    # the patch dropped the checkable form: an `invalid` re-check must not flip it to survived
+    ledger.record(a.signature, Verdict(attack_id="a", landed=False, label="invalid"))
+    assert [e.attack.signature for e in ledger.failing()] == [a.signature]
+    ledger.record(a.signature, Verdict(attack_id="a", landed=False, label="pass"))
+    assert ledger.failing() == []
+
+
 # ---- coordinator (TR-7/8/15) -----------------------------------------------------------------
 
 class ScriptedBreaker:
