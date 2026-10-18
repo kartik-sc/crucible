@@ -293,3 +293,18 @@ def test_all_breakers_failing_is_never_reported_as_converged():
     evs = run_events("code", fake_agents("code", scenario=sc))
     assert evs[-1].type == "ERROR" and evs[-1].data["fatal"] and evs[-1].data["where"] == "fanout"
     assert "DONE" not in types(evs)
+
+
+def test_partly_dead_swarm_with_no_attacks_is_never_reported_as_converged():
+    # live: two breakers hit a bad key, the other two returned [] -> was "converged" at 0.0
+    agents = fake_agents("code")
+
+    async def half_dead(spec, content, role, digest):
+        if role in ("numeric_type", "spec_gap"):
+            raise RuntimeError("aistudio 400 API_KEY_INVALID")
+        return []
+
+    agents.breaker.attack = half_dead
+    evs = run_events("code", agents)
+    assert evs[-1].type == "ERROR" and evs[-1].data["fatal"] and evs[-1].data["where"] == "fanout"
+    assert "DONE" not in types(evs)

@@ -125,12 +125,46 @@ async def test_aistudio_no_seed():
     print("  [4] aistudio JSON mode         OK")
 
 
+async def test_aistudio_bad_key_rotates_and_thoughts_dropped():
+    served: list[str] = []
+    bodies: list[dict] = []
+    seen_urls: list = []
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        served.append(req.headers["x-goog-api-key"])
+        seen_urls.append(req.url)
+        bodies.append(json.loads(req.content))
+        if req.headers["x-goog-api-key"] == "bad":
+            # AI Studio reports an invalid key as 400, not 401/403
+            return httpx.Response(400, json={"error": {"code": 400, "status": "INVALID_ARGUMENT",
+                                                       "details": [{"reason": "API_KEY_INVALID"}]}})
+        return httpx.Response(200, json={
+            "candidates": [{"content": {"parts": [{"text": "thinking...", "thought": True},
+                                                  {"text": '{"attacks": []}'}]}}],
+            "usageMetadata": {"promptTokenCount": 1, "candidatesTokenCount": 1, "totalTokenCount": 2},
+        })
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    ep = Endpoint(provider=AIStudioProvider(), model="gemma-4-26b-a4b-it",
+                  pool=KeyPool(["bad", "good"], base_cooldown=0.01, max_cooldown=0.05))
+    gw = ModelGateway({"breaker": ep}, client=client)
+    res = await gw.breaker([{"role": "user", "content": "hi"}], max_tokens=8)
+    await gw.aclose()
+
+    assert "good" in served, f"400 API_KEY_INVALID must rotate; served={served}"
+    assert all("key=" not in str(u) for u in seen_urls), "key must not ride in the URL"
+    assert res.text == '{"attacks": []}', res.text
+    assert bodies[-1]["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "minimal"}, bodies[-1]
+    print("  [5] aistudio bad key rotates, thoughts dropped OK")
+
+
 async def main():
     print("gateway rotation tests (mock transport, no network):")
     await test_rotate_on_429()
     await test_concurrent_spread()
     await test_bug_fails_fast()
     await test_aistudio_no_seed()
+    await test_aistudio_bad_key_rotates_and_thoughts_dropped()
     print("ALL PASSED")
 
 
