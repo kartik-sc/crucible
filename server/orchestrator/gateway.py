@@ -56,9 +56,14 @@ class DevGateway:
     async def call(self, role, messages, *, max_tokens, temp, seed=None, cache_prefix=None):
         base, model, key = self.cfg[role]
         body = {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": temp}
-        # Groq's OpenAI layer supports `seed`; Google's (Gemini/Gemma) rejects it (400 Unknown name).
-        if seed is not None and "groq.com" in base:
-            body["seed"] = seed
+        if "groq.com" in base:
+            # Groq's OpenAI layer supports `seed` (Google's rejects it: 400 Unknown name).
+            if seed is not None:
+                body["seed"] = seed
+        else:
+            # Google (Gemini/Gemma) OpenAI-compat: request JSON output for the breaker
+            # (OpenAI-compat analog of responseMimeType application/json).
+            body["response_format"] = {"type": "json_object"}
         async with httpx.AsyncClient(timeout=60) as c:
             r = await c.post(f"{base}/chat/completions", json=body,
                              headers={"Authorization": f"Bearer {key}"})
