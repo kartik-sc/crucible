@@ -41,7 +41,11 @@ class Ledger:
     def record(self, sig: str, verdict: Verdict | None) -> Entry:
         """Store a ruling. `None` means indeterminate (timeout/error): not settled."""
         e = self._entries[sig]
-        if verdict is None:
+        if e.failing and (verdict is None or verdict.label in ("invalid", "indeterminate", "error")):
+            # A landed break that now can't be checked (patch dropped the ANSWER: line, sandbox
+            # timed out) has not been fixed: keep the landed ruling so the loop patches again.
+            pass
+        elif verdict is None:
             e.settled = False
         else:
             e.verdict, e.settled = verdict, True

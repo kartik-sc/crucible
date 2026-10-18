@@ -100,6 +100,19 @@ def test_ledger_digest_tracks_tried_survivors_landed():
     assert ledger.failing() == [] and [x.signature for x in ledger.digest().landed] == [a.signature]
 
 
+def test_landed_break_made_uncheckable_is_not_fixed():
+    ledger = Ledger()
+    a = atk(test={"input": "0", "expected": "0"})
+    a.signature = signature(a)
+    ledger.add(a, 1)
+    ledger.record(a.signature, Verdict(attack_id="a", landed=True, label="fail"))
+    # the patch dropped the checkable form: an `invalid` re-check must not flip it to survived
+    ledger.record(a.signature, Verdict(attack_id="a", landed=False, label="invalid"))
+    assert [e.attack.signature for e in ledger.failing()] == [a.signature]
+    ledger.record(a.signature, Verdict(attack_id="a", landed=False, label="pass"))
+    assert ledger.failing() == []
+
+
 # ---- coordinator (TR-7/8/15) -----------------------------------------------------------------
 
 class ScriptedBreaker:
@@ -280,3 +293,105 @@ def test_all_breakers_failing_is_never_reported_as_converged():
     evs = run_events("code", fake_agents("code", scenario=sc))
     assert evs[-1].type == "ERROR" and evs[-1].data["fatal"] and evs[-1].data["where"] == "fanout"
     assert "DONE" not in types(evs)
+
+
+def test_partly_dead_swarm_with_no_attacks_is_never_reported_as_converged():
+    # live: two breakers hit a bad key, the other two returned [] -> was "converged" at 0.0
+    agents = fake_agents("code")
+
+    async def half_dead(spec, content, role, digest):
+        if role in ("numeric_type", "spec_gap"):
+            raise RuntimeError("aistudio 400 API_KEY_INVALID")
+        return []
+
+    agents.breaker.attack = half_dead
+    evs = run_events("code", agents)
+    assert evs[-1].type == "ERROR" and evs[-1].data["fatal"] and evs[-1].data["where"] == "fanout"
+    assert "DONE" not in types(evs)
+
+
+def test_verifier_indeterminate_label_is_unsettled():
+    class Unsure:
+        def verify(self, artifact, attack):
+            return Verdict(attack_id=attack.id, landed=False, label="indeterminate", evidence="sandbox too slow")
+
+    r = route(Unsure(), atk(id="atk_1", test={"input": "0", "expected": "0"}))
+    assert not r.settled and "sandbox too slow" in r.verdict.evidence
+
+
+def test_sandbox_timeout_nobody_could_beat_is_not_a_break(monkeypatch):
+    import config
+    from verifiers.pyexec import PyExecVerifier
+
+    monkeypatch.setattr(config, "SANDBOX_TIMEOUT_S", 0.5)
+    art = Artifact.make("code", "Write is_palindrome(s).", "def is_palindrome(s):\n    while True:\n        pass\n")
+    a = atk(id="atk_t", test={"input": "''", "expected": "True"})
+    r = asyncio.run(VerifierRouter({"test": PyExecVerifier(oracles=None)}, 8).verify(art, a))
+    assert not r.settled and not r.verdict.landed
+
+
+def test_bare_exception_name_expectation_matches_a_raise():
+    # live: expected "TypeError", got "raised TypeError" was scored as a landed break
+    from verifiers.pyexec import PyExecVerifier
+
+    art = Artifact.make("code", "Write is_palindrome(s).",
+                        "def is_palindrome(s):\n    if not isinstance(s, str):\n        raise TypeError('s must be a string')\n    return True\n")
+    a = atk(id="atk_e", test={"input": "[1, 2, 3]", "expected": "TypeError"})
+    r = asyncio.run(VerifierRouter({"test": PyExecVerifier(oracles=None)}, 8).verify(art, a))
+    assert r.settled and not r.verdict.landed
+
+
+def test_math_answer_without_answer_line_is_a_break_not_robust():
+    # live: the builder's derivation never stated ANSWER:, every attack went 'invalid', run scored 1.0
+    from contracts import Computation
+    from verifiers.pyexec import PyExecVerifier
+
+    art = Artifact.make("math", "How many 4-digit integers have digits summing to 10?",
+                        "Let x1 + x2 + x3 + x4 = 10 with x1 >= 1 ...")
+    a = Attack(id="atk_m", breaker="boundary", computation=Computation(
+        expr="result = sum(1 for n in range(1000, 10000) if sum(map(int, str(n))) == 10)", expected="219"))
+    r = asyncio.run(VerifierRouter({"computation": PyExecVerifier(oracles=None)}, 15).verify(art, a))
+    assert r.settled and r.verdict.landed and "219" in r.verdict.evidence
+
+
+def test_verifier_error_label_is_unsettled_not_survived():
+    # live: Wikipedia 403 -> label=error was scored as survived -> 'converged' at 1.0
+    class Down:
+        def verify(self, artifact, attack):
+            return Verdict(attack_id=attack.id, landed=False, label="error", evidence="verification unavailable: 403")
+
+    r = route(Down(), atk(id="atk_1", test={"input": "0", "expected": "0"}))
+    assert not r.settled
+
+
+def test_tavily_retriever_ranks_results_and_falls_back():
+    import httpx
+    from verifiers.nli import FixtureRetriever, TavilyRetriever
+
+    def ok(req):
+        assert req.headers["Authorization"] == "Bearer tvly-test"
+        return httpx.Response(200, json={"results": [
+            {"content": "Alexander Fleming discovered penicillin in 1928 at St Mary's Hospital, London."}]})
+
+    got = asyncio.run(TavilyRetriever("tvly-test", transport=httpx.MockTransport(ok)).search("penicillin", "Fleming"))
+    assert any("St Mary's Hospital" in p for p in got)
+
+    down = TavilyRetriever("tvly-test", fallback=FixtureRetriever({"penicillin": ["from fallback"]}),
+                           transport=httpx.MockTransport(lambda r: httpx.Response(401)))
+    assert asyncio.run(down.search("penicillin", "x")) == ["from fallback"]
+
+
+def test_invalid_only_evidence_never_scores_as_robust():
+    # live (math + factual): every attack came back invalid/error and the run 'converged' at 1.0
+    class Rejects:
+        def verify(self, artifact, attack):
+            return Verdict(attack_id=attack.id, landed=False, label="invalid", evidence="breaker was wrong")
+
+    r = route(Rejects(), atk(id="atk_1", test={"input": "0", "expected": "1"}))
+    assert not r.settled and r.verdict.label == "invalid"
+    ledger = Ledger()
+    a = atk(test={"input": "0", "expected": "1"})
+    a.signature = signature(a)
+    ledger.add(a, 1)
+    ledger.record(a.signature, r.verdict if r.settled else None)
+    assert score(ledger.entries(), 1, 0).robustness == 0.0

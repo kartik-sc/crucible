@@ -83,7 +83,7 @@ BREAKER_TEMPS = {"boundary": 0.8, "numeric_type": 0.9, "spec_gap": 1.0, "factual
 BREAKER_SEEDS = {"boundary": 11, "numeric_type": 22, "spec_gap": 33, "factual": 44}
 
 # --- token caps ---
-BUILDER_MAX_TOKENS = 1600
+BUILDER_MAX_TOKENS = int(os.getenv("BUILDER_MAX_TOKENS", "2400"))  # 1600 truncated math patches before ANSWER:
 BREAKER_MAX_TOKENS = 700
 REPAIR_MAX_TOKENS = 700
 LEDGER_PROMPT_CAP = 10  # survivors/landed lines shown per list in a breaker prompt

@@ -89,7 +89,10 @@ class Builder:
 
     async def generate(self, spec: str, domain: Domain) -> BuilderOutput:
         """BUILDER: (spec) -> {content, assumptions[]}"""
-        return await self._call(domain, f"SPEC:\n{spec}")
+        user = f"SPEC:\n{spec}"
+        if domain == "math":
+            user += "\n\nKeep the derivation compact and FINISH with the line `ANSWER: <value>`."
+        return await self._call(domain, user)
 
     async def patch(self, artifact: Artifact, landed: list[LandedBreak]) -> str:
         """PATCH: (artifact, landed breaks) -> content'. ONE call per round for ALL breaks.
@@ -101,6 +104,9 @@ class Builder:
                 "FULL updated answer. If a failure contradicts the SPEC itself (the check is wrong), follow the "
                 "SPEC and record why in <assumptions>. Fix the GENERAL logic: never special-case the failing "
                 "inputs or hard-code expected values.")
+        if artifact.domain == "math":
+            user += ("\n\nKeep the derivation compact (no repeated recaps) and FINISH with the line "
+                     "`ANSWER: <value>`: without it the answer cannot be verified.")
         out = await self._call(artifact.domain, user)
         if artifact.domain == "code" and looks_hardcoded(artifact.content, out.content, landed):
             out = await self._call(artifact.domain, user + "\n\nYour previous attempt special-cased the failing "

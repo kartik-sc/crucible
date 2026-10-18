@@ -23,6 +23,7 @@ from orchestrator.loop import CrucibleRun
 from orchestrator.wiring import build_agents, get_gateway
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+logging.getLogger("httpx").setLevel(logging.WARNING)  # per-request lines carry provider URLs
 
 from orchestrator.seams import active_seams  # noqa: E402
 
@@ -85,6 +86,5 @@ async def health() -> dict:
 @app.get("/usage")
 async def usage() -> dict:
     gw = get_gateway(settings)
-    if gw is None or not hasattr(gw, "usage"):
-        return {}
-    return gw.usage.summary()
+    meter = getattr(gw, "usage", None)  # DevGateway without a pooled delegate has usage=None
+    return meter.summary() if meter is not None else {}

@@ -42,7 +42,12 @@ class VerifierRouter:
         except Exception as exc:  # adapter bug must not kill the round
             log.exception("verifier crashed on %s", attack.id)
             return self._indeterminate(attack, f"verifier error: {exc}")
-        return Ruling(verdict=v.model_copy(update={"attack_id": attack.id}), settled=True)
+        v = v.model_copy(update={"attack_id": attack.id})
+        if v.label in ("invalid", "indeterminate", "error"):
+            # Proved nothing either way (bad attack, source 403, slow sandbox): shown, never scored.
+            # Counting these as survived made runs 'converge' at 1.0 on zero evidence.
+            return Ruling(verdict=v, settled=False)
+        return Ruling(verdict=v, settled=True)
 
     @staticmethod
     def _indeterminate(attack: Attack, why: str) -> Ruling:

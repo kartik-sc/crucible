@@ -13,6 +13,7 @@ Notes (learned from the live DevGateway run, 2026-10-18):
 """
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 
 import httpx
@@ -63,7 +64,8 @@ def _classify_status(resp: httpx.Response, provider: str) -> None:
     body = resp.text[:400]
     if sc == 429:
         raise RetryableError(f"{provider} 429 rate limited: {body}", _retry_after(resp), sc)
-    if sc in (401, 403):
+    if sc in (401, 403) or (sc == 400 and "API_KEY_INVALID" in body):
+        # AI Studio reports a bad key as 400 API_KEY_INVALID: still a per-key fault, rotate.
         raise KeyAuthError(f"{provider} {sc} auth failed (bad/disabled key?): {body}", status=sc)
     if sc in (408, 500, 502, 503, 504):
         raise RetryableError(f"{provider} {sc} server error: {body}", _retry_after(resp), sc)
@@ -144,12 +146,17 @@ class AIStudioProvider(Provider):
         if temperature is not None:
             gen["temperature"] = temperature
         gen["responseMimeType"] = "application/json"
+        if model.startswith("gemma-4"):
+            # Gemma 4 thinks by default and the thoughts eat maxOutputTokens before the JSON
+            # (live: 0 answer tokens). It rejects thinkingBudget=0; "minimal" works.
+            gen["thinkingConfig"] = {"thinkingLevel": os.getenv("AISTUDIO_THINKING_LEVEL", "minimal")}
         # `seed` intentionally NOT sent: AI Studio returned 400 on it in live testing.
         payload = {"contents": self._to_contents(messages), "generationConfig": gen}
         try:
             resp = await client.post(
-                url, params={"key": key}, json=payload,
-                headers={"Content-Type": "application/json"},
+                url, json=payload,
+                # header, not ?key=: a URL param lands in httpx/uvicorn request logs
+                headers={"Content-Type": "application/json", "x-goog-api-key": key},
             )
         except httpx.TimeoutException as e:
             raise RetryableError(f"aistudio timeout: {e}")
@@ -165,7 +172,7 @@ class AIStudioProvider(Provider):
             raise NonRetryableError(f"aistudio returned no candidates: {str(fb)[:300]}")
         try:
             parts = candidates[0]["content"]["parts"]
-            text = "".join(p.get("text", "") for p in parts)
+            text = "".join(p.get("text", "") for p in parts if not p.get("thought"))
         except (KeyError, IndexError, TypeError):
             reason = candidates[0].get("finishReason", "unknown")
             raise NonRetryableError(f"aistudio no text (finishReason={reason})")

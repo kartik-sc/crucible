@@ -90,9 +90,12 @@ class CrucibleRun:
                     yield ev.error(f"breaker:{item.role}", item.message, fatal=False)
                 else:
                     yield ev.attack(item)
-            if stats.failed_roles == len(self.settings.breaker_roles):
+            if stats.failed_roles == len(self.settings.breaker_roles) or (
+                stats.failed_roles and not stats.proposed and not len(self.ledger)
+            ):
                 # Silence from a dead swarm is not robustness — never report it as converged.
-                raise FatalError("fanout", "every breaker failed this round")
+                # Also covers a partly-dead swarm whose survivors proposed nothing in round 1.
+                raise FatalError("fanout", f"{stats.failed_roles} breaker(s) failed and none proposed an attack")
 
             # ---- VERIFY (new attacks + regression suite, against the current version)
             yield ev.state("VERIFY", round_no)
