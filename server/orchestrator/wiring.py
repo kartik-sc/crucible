@@ -51,6 +51,19 @@ def build_agents(domain: Domain, settings: Settings, mock: bool = False) -> Agen
 
 
 def get_gateway(settings: Settings) -> Any:
-    """The shared Model Gateway (exposes health()/usage when present); None unless agents == real.
-    Reflects the configured mode; a per-request mock=True stream never builds a gateway (see build_agents)."""
-    return None if _use_fake(settings) else _real_gateway(settings)
+    """Return the configured gateway while keeping fake mode key-free."""
+    global _GATEWAY
+    if _use_fake(settings):
+        return None
+    if _GATEWAY is None:
+        from orchestrator.gateway import DevGateway, ModelGatewayAdapter, build_gateway
+
+        mode = __import__("os").getenv("GATEWAY", "dev").strip().lower()
+        if mode == "pooled":
+            _GATEWAY = ModelGatewayAdapter(build_gateway())
+        elif mode == "dev":
+            _GATEWAY = DevGateway()
+        else:
+            raise ValueError(f"unsupported GATEWAY={mode!r}; expected dev or pooled")
+        log.info("gateway selected: %s", mode)
+    return _GATEWAY
