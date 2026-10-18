@@ -352,3 +352,30 @@ def test_math_answer_without_answer_line_is_a_break_not_robust():
         expr="result = sum(1 for n in range(1000, 10000) if sum(map(int, str(n))) == 10)", expected="219"))
     r = asyncio.run(VerifierRouter({"computation": PyExecVerifier(oracles=None)}, 15).verify(art, a))
     assert r.settled and r.verdict.landed and "219" in r.verdict.evidence
+
+
+def test_verifier_error_label_is_unsettled_not_survived():
+    # live: Wikipedia 403 -> label=error was scored as survived -> 'converged' at 1.0
+    class Down:
+        def verify(self, artifact, attack):
+            return Verdict(attack_id=attack.id, landed=False, label="error", evidence="verification unavailable: 403")
+
+    r = route(Down(), atk(id="atk_1", test={"input": "0", "expected": "0"}))
+    assert not r.settled
+
+
+def test_tavily_retriever_ranks_results_and_falls_back():
+    import httpx
+    from verifiers.nli import FixtureRetriever, TavilyRetriever
+
+    def ok(req):
+        assert req.headers["Authorization"] == "Bearer tvly-test"
+        return httpx.Response(200, json={"results": [
+            {"content": "Alexander Fleming discovered penicillin in 1928 at St Mary's Hospital, London."}]})
+
+    got = asyncio.run(TavilyRetriever("tvly-test", transport=httpx.MockTransport(ok)).search("penicillin", "Fleming"))
+    assert any("St Mary's Hospital" in p for p in got)
+
+    down = TavilyRetriever("tvly-test", fallback=FixtureRetriever({"penicillin": ["from fallback"]}),
+                           transport=httpx.MockTransport(lambda r: httpx.Response(401)))
+    assert asyncio.run(down.search("penicillin", "x")) == ["from fallback"]

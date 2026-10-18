@@ -42,7 +42,7 @@ class VerifierRouter:
         except Exception as exc:  # adapter bug must not kill the round
             log.exception("verifier crashed on %s", attack.id)
             return self._indeterminate(attack, f"verifier error: {exc}")
-        if v.label == "indeterminate":  # the verifier itself says it could not tell
+        if v.label in ("indeterminate", "error"):  # the verifier itself could not tell (e.g. source 403)
             return self._indeterminate(attack, v.evidence)
         return Ruling(verdict=v.model_copy(update={"attack_id": attack.id}), settled=True)
 

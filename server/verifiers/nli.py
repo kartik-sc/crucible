@@ -7,6 +7,8 @@ config.UNSUPPORTED_LANDS). Retrieval/NLI outages never land a break.
 from __future__ import annotations
 
 import asyncio
+import logging
+import os
 import re
 from difflib import SequenceMatcher
 from typing import Protocol
@@ -34,8 +36,10 @@ def claim_present(claim: str, content: str) -> bool:
                 return True
     return False
 
-UA = "CRUCIBLE-hackathon/0.1 (open-source verifier; contact: github.com/crucible)"
+UA = "CRUCIBLE-hackathon/0.1 (open-source verifier; https://github.com/kartik-sc/crucible)"
 WIKI_API = "https://en.wikipedia.org/w/api.php"
+TAVILY_API = "https://api.tavily.com/search"
+log = logging.getLogger("crucible.nli")
 
 
 # ---------------- retrieval ----------------
@@ -73,6 +77,35 @@ class WikipediaRetriever:
             texts = await asyncio.gather(*(extract(t) for t in titles))
         sents = [s for t in texts for s in split_sentences(t)]
         return rank_passages(f"{claim} {query}", sents, config.NLI_TOP_PASSAGES)
+
+
+class TavilyRetriever:
+    """Web search via Tavily (TAVILY_API_KEY). Wikipedia 403s many cloud IPs (Render), so this is the
+    default when a key is set; Wikipedia remains the fallback."""
+
+    def __init__(self, key: str, fallback: Retriever | None = None, transport: httpx.BaseTransport | None = None):
+        self.key, self.fallback, self._transport = key, fallback, transport
+
+    async def search(self, query: str, claim: str) -> list[str]:
+        try:
+            async with httpx.AsyncClient(timeout=10, transport=self._transport) as c:
+                r = await c.post(TAVILY_API, headers={"Authorization": f"Bearer {self.key}"},
+                                 json={"query": query, "max_results": 4, "search_depth": "basic"})
+                r.raise_for_status()
+                texts = [x.get("content", "") for x in r.json().get("results", [])]
+        except Exception as e:
+            if self.fallback is None:
+                raise
+            log.warning("tavily search failed (%s); falling back", type(e).__name__)
+            return await self.fallback.search(query, claim)
+        sents = [s for t in texts for s in split_sentences(t)]
+        return rank_passages(f"{claim} {query}", sents, config.NLI_TOP_PASSAGES)
+
+
+def default_retriever() -> Retriever:
+    key = os.getenv("TAVILY_API_KEY", "").strip()
+    wiki = WikipediaRetriever()
+    return TavilyRetriever(key, fallback=wiki) if key and "REPLACE" not in key else wiki
 
 
 class FixtureRetriever:
@@ -151,7 +184,7 @@ def default_nli_backend() -> NLIBackend:
 # ---------------- verifier ----------------
 class NLIVerifier:
     def __init__(self, retriever: Retriever | None = None, backend: NLIBackend | None = None):
-        self.retriever = retriever or WikipediaRetriever()
+        self.retriever = retriever or default_retriever()
         self.backend = backend or default_nli_backend()
         self._memo: dict[tuple[str, str], Verdict] = {}
 
