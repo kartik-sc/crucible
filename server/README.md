@@ -40,3 +40,27 @@ Implement the protocols in `orchestrator/agents.py` (sync or async both work):
   `{"test": pyexec, "computation": pyexec, "claimCheck": nli}`
 
 Then return them from `build_agents()` and set `CRUCIBLE_AGENTS=real`.
+
+## M2 components (intelligence & ground truth)
+
+The reusable backend pieces M2 contributes, ported onto this layout (absolute
+imports, `server/` as the root — the modules live here, not under a `server`
+package):
+
+```
+breakers/   # builder, LLM breakers, deterministic auditors, oracles
+verifiers/  # sandbox execution (pyexec), static lints, factual NLI
+demo/       # deterministic planted-flaw fixtures for the smoke script and tests
+```
+
+Public integration points (wired in `orchestrator/wiring.py`):
+
+- `breakers.builder.Builder`
+- `breakers.breakers.make_swarm`
+- `breakers.auditors.make_auditors`
+- `breakers.oracles.LLMOracles`
+- `verifiers.pyexec.PyExecVerifier`
+- `verifiers.nli.NLIVerifier`
+
+All types come from the single `contracts.py`; configuration from `config.py`;
+signatures/ids are assigned by the Coordinator, not by the breakers.
