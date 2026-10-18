@@ -22,7 +22,10 @@ export function SwarmPane({ attacks }: { attacks: AttackView[] }) {
   const active = new Set(attacks.map((a) => a.breaker));
 
   return (
-    <section className="flex min-h-[300px] flex-col lg:min-h-0" aria-label="Breaker swarm">
+    <section
+      className="flex h-[75vh] max-h-[680px] min-h-[300px] flex-col lg:h-auto lg:max-h-none lg:min-h-0"
+      aria-label="Breaker swarm"
+    >
       <header className="border-b border-hairline px-5 py-4">
         <div className="flex items-end justify-between gap-4">
           <div>
@@ -96,7 +99,7 @@ export function SwarmPane({ attacks }: { attacks: AttackView[] }) {
         ))}
       </ul>
 
-      <ol className="min-h-0 flex-1 overflow-auto">
+      <ol className="scroll-pane min-h-0 flex-1" tabIndex={0} aria-label="Attacks">
         {attacks.length === 0 ? (
           <li className="px-5 py-10 text-center font-sans text-sm text-bone-faint">
             No attacks yet — the swarm is circling.

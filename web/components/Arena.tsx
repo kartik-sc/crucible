@@ -108,7 +108,8 @@ export function Arena({
 
       <VerdictBanner state={state} onReplay={onRetry} />
 
-      <main className="relative flex min-h-0 flex-1 overflow-visible rounded-xl border border-hairline bg-ink/60 shadow-panel lg:overflow-hidden">
+      {/* Bounded height on desktop: the panes scroll inside, the page doesn't stretch. */}
+      <main className="relative flex min-h-0 overflow-visible rounded-xl border border-hairline bg-ink/60 shadow-panel lg:h-[clamp(520px,calc(100vh-8rem),780px)] lg:overflow-hidden">
         <RoundIntro state={state} />
         {fighting && <BorderBeam size={140} duration={7} colorFrom="#e0a94a" colorTo="#e5484d" borderWidth={1.5} />}
         {showInvitation ? (
