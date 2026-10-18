@@ -54,7 +54,7 @@ class DevGateway:
         self.cfg = {
             "builder": (
                 "https://api.groq.com/openai/v1",
-                os.getenv("GROQ_BUILDER_MODEL", "qwen/qwen3-32b"),
+                os.getenv("GROQ_BUILDER_MODEL", "qwen/qwen3.8-27b"),
                 os.getenv("GROQ_API_KEY", ""),
             ),
             "breaker": (
