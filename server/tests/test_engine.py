@@ -379,3 +379,19 @@ def test_tavily_retriever_ranks_results_and_falls_back():
     down = TavilyRetriever("tvly-test", fallback=FixtureRetriever({"penicillin": ["from fallback"]}),
                            transport=httpx.MockTransport(lambda r: httpx.Response(401)))
     assert asyncio.run(down.search("penicillin", "x")) == ["from fallback"]
+
+
+def test_invalid_only_evidence_never_scores_as_robust():
+    # live (math + factual): every attack came back invalid/error and the run 'converged' at 1.0
+    class Rejects:
+        def verify(self, artifact, attack):
+            return Verdict(attack_id=attack.id, landed=False, label="invalid", evidence="breaker was wrong")
+
+    r = route(Rejects(), atk(id="atk_1", test={"input": "0", "expected": "1"}))
+    assert not r.settled and r.verdict.label == "invalid"
+    ledger = Ledger()
+    a = atk(test={"input": "0", "expected": "1"})
+    a.signature = signature(a)
+    ledger.add(a, 1)
+    ledger.record(a.signature, r.verdict if r.settled else None)
+    assert score(ledger.entries(), 1, 0).robustness == 0.0
