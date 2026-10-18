@@ -29,7 +29,7 @@ event: STATE
 data: {"state":"PATCH","round":1}
 
 event: BUILDER
-data: {"version":1,"contentPreview":"def merge_intervals(intervals):\n    if not intervals:\n        return []\n    ordered = sorted(intervals, key=lambda p: p[0])\n    merged = [list(ordered[0])]\n    for start, end in ordered[1:]:\n        last = merged[-1]\n        if start <= last[1]:\n            last[1] = max(last[1], end)\n        else:\n            merged.append([start, end])\n    return merged\n"}
+data: {"version":1,"contentPreview":"def merge_intervals(intervals):\n    if not intervals:\n        return []\n    ordered = sorted(intervals, key=lambda p: p[0])\n    merged = [list(ordered[0])]\n    for start, end in ordered[1:]:\n        last = merged[-1]\n        if start <= last[1]:\n            last[1] = max(last[1], end)\n        else:\n            merged.append([start, end])\n    return merged"}
 
 event: ROUND_END
 data: {"round":1,"newBreaks":1}

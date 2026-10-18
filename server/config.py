@@ -56,6 +56,9 @@ USE_REAL_BREAKERS = tuple(_list("USE_REAL_BREAKERS", ""))  # comma list of roles
 USE_REAL_PYEXEC = os.getenv("USE_REAL_PYEXEC", "0") == "1"
 USE_REAL_NLI = os.getenv("USE_REAL_NLI", "0") == "1"
 DEMO_ARTIFACT = os.getenv("DEMO_ARTIFACT", "")  # a key in demo.artifacts.ALL; else first matching the domain
+# With USE_REAL_BUILDER=1, seed v0 from the planted flawed artifact so a real breaker has a flaw to land
+# and the REAL builder generates the patch from the landed verdict (generate is seeded; patch is real).
+SEED_FLAWED = os.getenv("SEED_FLAWED", "0") == "1"
 
 
 # ---------------------------------------------------------------------------

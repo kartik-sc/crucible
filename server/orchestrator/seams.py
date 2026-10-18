@@ -102,6 +102,21 @@ class _DemoFakeBuilder:
         return self.demo.fixed
 
 
+class _SeededRealBuilder:
+    """generate() serves the planted flawed content (guarantees a flaw to land); patch() is the real
+    builder, so the patch is a genuine model call from the landed verdict. For USE_REAL_BUILDER=1 + SEED_FLAWED=1."""
+
+    def __init__(self, demo, real_builder) -> None:
+        self.demo = demo
+        self.real = real_builder
+
+    async def generate(self, spec: str, domain: Domain) -> BuildResult:
+        return BuildResult(content=self.demo.flawed, assumptions=list(self.demo.assumptions))
+
+    async def patch(self, artifact: Artifact, breaks):
+        return await self.real.patch(artifact, breaks)
+
+
 class _DemoFakeBreaker:
     """Emits the planted golden attack for its role, once (round 1). Coordinator assigns id/sig."""
 
@@ -158,7 +173,8 @@ def compose(domain: Domain, settings, gateway_factory: Callable[[], Any]) -> Age
     if real.builder:
         from breakers.builder import Builder
 
-        builder: Any = Builder(gateway)
+        real_builder = Builder(gateway)
+        builder: Any = _SeededRealBuilder(demo, real_builder) if config.SEED_FLAWED else real_builder
     else:
         builder = _DemoFakeBuilder(demo)
 
