@@ -11,6 +11,19 @@ const DOMAIN_NOUN: Record<Domain, string> = {
   math: "the derivation",
 };
 
+const TAB_SIZE = 4;
+
+/** Leading whitespace width in `ch`, counting a tab as TAB_SIZE columns. */
+function indentOf(text: string): number {
+  let width = 0;
+  for (const ch of text) {
+    if (ch === " ") width += 1;
+    else if (ch === "\t") width += TAB_SIZE - (width % TAB_SIZE);
+    else break;
+  }
+  return width;
+}
+
 const GUTTER: Record<DiffLine["kind"], string> = { same: " ", added: "+", removed: "−" };
 
 const ROW: Record<DiffLine["kind"], string> = {
@@ -99,9 +112,13 @@ export function BuilderPane({
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
               exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
               transition={SPRING_SETTLE}
-              className="font-mono text-[13px] leading-relaxed text-bone"
+              className="font-mono text-[13px] leading-relaxed text-bone [tab-size:4]"
             >
               {lines.map((line, i) => {
+                // Hanging indent: a wrapped line continues under its own text, not at
+                // column 0, so a long docstring keeps the code's shape. The text itself
+                // is untouched, so selecting and copying keeps the original spaces.
+                const indent = indentOf(line.text);
                 const cells = (
                   <>
                     {domain === "code" && (
@@ -121,7 +138,10 @@ export function BuilderPane({
                     >
                       {GUTTER[line.kind]}
                     </span>
-                    <code className="min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]">
+                    <code
+                      className="min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]"
+                      style={{ paddingLeft: `${indent}ch`, textIndent: `-${indent}ch` }}
+                    >
                       {line.text || " "}
                     </code>
                   </>
