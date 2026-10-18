@@ -335,8 +335,10 @@ class PyExecVerifier:
         # (b) independent recomputation vs the answer's final `ANSWER:` line
         stated = final_answer(art.content)
         if stated is None:
-            return mk(False, "invalid", label_val, "answer has no 'ANSWER:' line and the expression is not "
-                                                   "written as 'expr = value'; cannot tie the attack to it")
+            # The breaker's number is already proven by its own snippet; an answer that never states a
+            # checkable result is the artifact's defect, not the attack's (else it scores as robust).
+            return mk(True, "fail", "no ANSWER: line", f"answer never states a final 'ANSWER:' line; "
+                      f"independent computation gives {label_val}", 0.8)
         if answer_matches(stated, r):
             return mk(False, "pass", label_val, f"independent computation agrees with ANSWER: {stated}")
         return await self._solver_gate(art, body, r, stated, mk)

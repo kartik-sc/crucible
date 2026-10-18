@@ -89,7 +89,10 @@ class Builder:
 
     async def generate(self, spec: str, domain: Domain) -> BuilderOutput:
         """BUILDER: (spec) -> {content, assumptions[]}"""
-        return await self._call(domain, f"SPEC:\n{spec}")
+        user = f"SPEC:\n{spec}"
+        if domain == "math":
+            user += "\n\nKeep the derivation compact and FINISH with the line `ANSWER: <value>`."
+        return await self._call(domain, user)
 
     async def patch(self, artifact: Artifact, landed: list[LandedBreak]) -> str:
         """PATCH: (artifact, landed breaks) -> content'. ONE call per round for ALL breaks.

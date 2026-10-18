@@ -339,3 +339,16 @@ def test_bare_exception_name_expectation_matches_a_raise():
     a = atk(id="atk_e", test={"input": "[1, 2, 3]", "expected": "TypeError"})
     r = asyncio.run(VerifierRouter({"test": PyExecVerifier(oracles=None)}, 8).verify(art, a))
     assert r.settled and not r.verdict.landed
+
+
+def test_math_answer_without_answer_line_is_a_break_not_robust():
+    # live: the builder's derivation never stated ANSWER:, every attack went 'invalid', run scored 1.0
+    from contracts import Computation
+    from verifiers.pyexec import PyExecVerifier
+
+    art = Artifact.make("math", "How many 4-digit integers have digits summing to 10?",
+                        "Let x1 + x2 + x3 + x4 = 10 with x1 >= 1 ...")
+    a = Attack(id="atk_m", breaker="boundary", computation=Computation(
+        expr="result = sum(1 for n in range(1000, 10000) if sum(map(int, str(n))) == 10)", expected="219"))
+    r = asyncio.run(VerifierRouter({"computation": PyExecVerifier(oracles=None)}, 15).verify(art, a))
+    assert r.settled and r.verdict.landed and "219" in r.verdict.evidence
