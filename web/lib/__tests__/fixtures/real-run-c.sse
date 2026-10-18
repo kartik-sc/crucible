@@ -1,0 +1,63 @@
+event: STATE
+data: {"state":"GENERATE","round":1}
+
+event: BUILDER
+data: {"version":0,"contentPreview":"def merge_intervals(intervals):\n    if not intervals:\n        return []\n    ordered = sorted(intervals, key=lambda p: p[0])\n    merged = [list(ordered[0])]\n    for start, end in ordered[1:]:\n        last = merged[-1]\n        if start < last[1]:\n            last[1] = max(last[1], end)\n        else:\n            merged.append([start, end])\n    return merged\n"}
+
+event: STATE
+data: {"state":"FANOUT","round":1}
+
+event: ATTACK
+data: {"attack":{"id":"atk_99048be4","breaker":"boundary","signature":"sha256:99048be431a572e601c5312930fab783f85f29c2e24711ac257e082eafb83728","rationale":"planted flaw","test":{"input":"[[1,2],[2,3]]","expected":"[[1, 3]]"}}}
+
+event: STATE
+data: {"state":"VERIFY","round":1}
+
+event: VERDICT
+data: {"verdict":{"attackId":"atk_99048be4","landed":true,"actual":"[[1, 2], [2, 3]]","evidence":"merge_intervals([[1,2],[2,3]]): expected [[1, 3]], got [[1, 2], [2, 3]] \u00b7 2/2 independent implementation(s) agree with the expectation","label":"fail","confidence":0.9}}
+
+event: STATE
+data: {"state":"SCORE","round":1}
+
+event: SCORE
+data: {"robustness":0.0,"newBreaks":1,"survived":0,"landed":1,"round":1}
+
+event: STATE
+data: {"state":"DECIDE","round":1}
+
+event: STATE
+data: {"state":"PATCH","round":1}
+
+event: BUILDER
+data: {"version":1,"contentPreview":"def merge_intervals(intervals):\n    if not intervals:\n        return []\n    ordered = sorted(intervals, key=lambda p: p[0])\n    merged = [list(ordered[0])]\n    for start, end in ordered[1:]:\n        last = merged[-1]\n        if start <= last[1]:\n            last[1] = max(last[1], end)\n        else:\n            merged.append([start, end])\n    return merged"}
+
+event: ROUND_END
+data: {"round":1,"newBreaks":1}
+
+event: STATE
+data: {"state":"FANOUT","round":2}
+
+event: STATE
+data: {"state":"VERIFY","round":2}
+
+event: VERDICT
+data: {"verdict":{"attackId":"atk_99048be4","landed":false,"actual":"[[1, 3]]","evidence":"merge_intervals([[1,2],[2,3]]) matched [[1, 3]]","label":"pass"}}
+
+event: STATE
+data: {"state":"SCORE","round":2}
+
+event: SCORE
+data: {"robustness":1.0,"newBreaks":0,"survived":1,"landed":0,"round":2}
+
+event: STATE
+data: {"state":"DECIDE","round":2}
+
+event: ROUND_END
+data: {"round":2,"newBreaks":0}
+
+event: STATE
+data: {"state":"DONE","round":2}
+
+event: DONE
+data: {"reason":"converged","robustness":1.0}
+

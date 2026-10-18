@@ -76,11 +76,10 @@ function toAttackView(attack: Attack): AttackView {
 /**
  * Resolve the TR-25 color from a verdict.
  *
- * Preferred path: a structured `Verdict.label` (proposed to M1, issue #5) maps
- * directly to the color grammar. Fallback path (today's contract): derive from
- * `landed`, distinguishing an UNSUPPORTED (amber) factual result from a
- * CONTRADICTED (red) one by sniffing the free-text `evidence`. Either way the UI
- * is correct, so no frontend change is needed once the field lands.
+ * Preferred path: a known NLI `Verdict.label` (the three cases below) maps directly
+ * to the color grammar. Any other label (the live stream emits e.g. "fail") is opaque
+ * and falls through to the `landed` path, which distinguishes an UNSUPPORTED (amber)
+ * factual result from a CONTRADICTED (red) one by sniffing the free-text `evidence`.
  */
 function verdictColor(kind: EvidenceKind, verdict: Verdict): VerdictColor {
   switch (verdict.label) {
@@ -139,7 +138,16 @@ export function reduce(state: ArenaState, event: SseEvent): ArenaState {
           evidence: event.verdict.evidence,
         };
       });
-      return matched ? { ...state, attacks } : state;
+      if (!matched) {
+        // The attack never entered state — most likely its ATTACK frame was dropped
+        // by the parser (missing id/signature). Ignore the orphan rather than
+        // inventing a row for it; warn so the dropped frame is traceable.
+        console.warn(
+          `[reducer] VERDICT for unknown attack "${event.verdict.attackId}" — ignored`,
+        );
+        return state;
+      }
+      return { ...state, attacks };
     }
 
     case "SCORE":
@@ -173,13 +181,17 @@ export function reduce(state: ArenaState, event: SseEvent): ArenaState {
       };
     }
 
-    case "ERROR":
-      // Freeze the last good version; only surface the error (TR-6, NFR-4).
+    case "ERROR": {
+      // fatal (and legacy ERROR with no flag) is terminal: freeze the last good
+      // version and surface the error (TR-6, NFR-4). fatal:false is a non-blocking
+      // notice — leave fsm untouched so the stream keeps feeding later events.
+      const fatal = event.fatal !== false;
       return {
         ...state,
-        fsm: "error",
-        error: { where: event.where, message: event.message },
+        fsm: fatal ? "error" : state.fsm,
+        error: { where: event.where, message: event.message, fatal },
       };
+    }
 
     default:
       return state;

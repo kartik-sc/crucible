@@ -100,7 +100,7 @@ GET  /usage                    # gateway.usage.summary() for the live budget met
 ```
 
 - Content type for /run: `text/event-stream`; one JSON payload per event.
-- CORS: allow the Vercel origin only.
+- CORS: allow the Vercel prod origin (`CORS_ORIGINS`) plus this project's preview deploys (`VERCEL_PROJECT_SLUG`/`VERCEL_TEAM_SLUG` regex) only.
 - No auth (non-goal N1); keys live server-side only.
 
 ## 4. Data model
@@ -122,7 +122,7 @@ Canonical in CONTRACTS.md: `Artifact`, `Attack` (with one of test/computation/cl
 
 ## 6. Deployment topology
 
-- **Frontend:** Next.js on Vercel (static/SSR). Env: `WEB_PUBLIC_API_URL`.
+- **Frontend:** Next.js on Vercel (static/SSR). Env: `NEXT_PUBLIC_API_URL`.
 - **Backend:** FastAPI on Render **Web Service** (always-on) — chosen to avoid
   serverless function timeouts on the multi-round loop. Env: see .env.example.
 - **Models:** hosted free-tier APIs (Groq, AI Studio) via the Gateway.
