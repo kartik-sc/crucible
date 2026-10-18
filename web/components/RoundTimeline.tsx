@@ -1,14 +1,20 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import type { ArenaState } from "@/lib/view-model";
 import { tallyOf } from "@/lib/tally";
+import { DONE_REASON_LABEL, FSM_LABEL } from "@/lib/ui";
+import { EASE_OUT } from "@/lib/motion";
 
 /** Round-by-round scorecard: who took each round. The phase rail shows the live beat. */
 export function RoundTimeline({ state }: { state: ArenaState }) {
   const { round, fsm } = state;
   const running = fsm !== "done" && fsm !== "idle" && fsm !== "error";
   const { rounds } = tallyOf(state);
+  // Once the run stops, the status slot names why it stopped (gated/converged/…)
+  // rather than the generic terminal FSM label.
+  const statusKey = state.done ? state.done.reason : fsm;
+  const statusLabel = state.done ? DONE_REASON_LABEL[state.done.reason] : FSM_LABEL[fsm];
 
   return (
     <div className="px-1 py-4">
@@ -52,6 +58,21 @@ export function RoundTimeline({ state }: { state: ArenaState }) {
           );
         })}
       </ol>
+      <div className="mt-3 flex items-center gap-2">
+        {running && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-accent" />}
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={statusKey}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.25, ease: EASE_OUT }}
+            className="font-sans text-[11px] uppercase tracking-label text-bone-dim"
+          >
+            {statusLabel}
+          </motion.span>
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

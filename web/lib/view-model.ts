@@ -4,6 +4,8 @@
  * shape from the event log, so this file is the contract between stream and UI.
  */
 
+import type { DoneReason } from "./types";
+
 export type Domain = "code" | "factual" | "math";
 
 export type WeaknessClass = "boundary" | "numeric_type" | "spec_gap" | "factual";
@@ -64,8 +66,8 @@ export interface ArenaState {
   robustness: number | null;
   robustnessHistory: number[];
   rounds: RoundView[];
-  done: { reason: "converged" | "max_rounds"; robustness: number } | null;
-  error: { where: string; message: string } | null;
+  done: { reason: DoneReason; robustness: number } | null;
+  error: { where: string; message: string; fatal: boolean } | null;
 }
 
 export const WEAKNESS_LABELS: Record<WeaknessClass, string> = {

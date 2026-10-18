@@ -35,7 +35,7 @@ query -> Heavy-Answer Gate -> Builder -> Breaker swarm (x4, parallel)
       -> Verifier (execute / entail) -> Scorer -> patch -> loop (<= 4 rounds)
 ```
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full diagram and module map.
+See [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the full diagram and module map.
 
 ## Domains
 
