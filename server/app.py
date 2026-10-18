@@ -85,6 +85,5 @@ async def health() -> dict:
 @app.get("/usage")
 async def usage() -> dict:
     gw = get_gateway(settings)
-    if gw is None or not hasattr(gw, "usage"):
-        return {}
-    return gw.usage.summary()
+    meter = getattr(gw, "usage", None)  # DevGateway without a pooled delegate has usage=None
+    return meter.summary() if meter is not None else {}

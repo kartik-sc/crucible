@@ -81,3 +81,10 @@ def test_cors_preflight_rejects_foreign_origins():
 
 def test_no_team_slug_means_no_preview_regex():
     assert Settings(vercel_team_slug="").cors_origin_regex is None
+
+
+def test_usage_with_dev_gateway_without_meter(monkeypatch):
+    class NoMeter:
+        usage = None
+    monkeypatch.setattr(app_module, "get_gateway", lambda s: NoMeter())
+    assert client.get("/usage").json() == {}

@@ -71,6 +71,9 @@ class DevGateway:
                 cache_prefix=cache_prefix,
             )
         base, model, key = self.cfg[role]
+        if not key:
+            env = "GROQ_API_KEYS" if role == "builder" else "AISTUDIO_API_KEYS"
+            raise RuntimeError(f"no API key for {role}: set {env} on the server")
         body = {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": temp}
         if seed is not None:
             body["seed"] = seed
