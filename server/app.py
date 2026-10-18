@@ -24,6 +24,10 @@ from orchestrator.wiring import build_agents, get_gateway
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
+from orchestrator.seams import active_seams  # noqa: E402
+
+logging.getLogger("crucible").info("real seams at boot: %s", active_seams(settings))
+
 app = FastAPI(title="CRUCIBLE orchestrator")
 app.add_middleware(
     CORSMiddleware,

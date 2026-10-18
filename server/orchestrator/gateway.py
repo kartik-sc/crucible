@@ -56,7 +56,8 @@ class DevGateway:
     async def call(self, role, messages, *, max_tokens, temp, seed=None, cache_prefix=None):
         base, model, key = self.cfg[role]
         body = {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": temp}
-        if seed is not None:
+        # Groq's OpenAI layer supports `seed`; Google's (Gemini/Gemma) rejects it (400 Unknown name).
+        if seed is not None and "groq.com" in base:
             body["seed"] = seed
         async with httpx.AsyncClient(timeout=60) as c:
             r = await c.post(f"{base}/chat/completions", json=body,
