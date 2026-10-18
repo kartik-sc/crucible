@@ -15,6 +15,14 @@ from pydantic.alias_generators import to_camel
 Domain = Literal["code", "factual", "math"]
 WeaknessClass = Literal["boundary", "numeric_type", "spec_gap", "factual"]
 WEAKNESS_CLASSES: tuple[WeaknessClass, ...] = ("boundary", "numeric_type", "spec_gap", "factual")
+ROLES = WEAKNESS_CLASSES  # breaker roles map 1:1 to weakness classes
+
+# Evidence kind each domain accepts; keys are the wire evidence keys (ground-truth rule).
+ALLOWED_EVIDENCE: dict[str, set[str]] = {
+    "code": {"test", "computation"},
+    "math": {"computation"},
+    "factual": {"claimCheck"},
+}
 
 
 class Model(BaseModel):
@@ -28,6 +36,11 @@ def spec_hash(spec: str) -> str:
     return "sha256:" + hashlib.sha256(spec.encode()).hexdigest()
 
 
+def sha(s: str, n: int = 32) -> str:
+    """Short content hash. Used for stable fixture ids; live ids/signatures are set by the coordinator."""
+    return "sha256:" + hashlib.sha256(s.encode("utf-8")).hexdigest()[:n]
+
+
 # ---- Artifact ---------------------------------------------------------------
 
 class Artifact(Model):
@@ -38,6 +51,12 @@ class Artifact(Model):
     assumptions: list[str] = []
     version: int = 0
 
+    @classmethod
+    def make(cls, domain: Domain, spec: str, content: str,
+             assumptions: list[str] | tuple[str, ...] = (), version: int = 0) -> "Artifact":
+        return cls(domain=domain, spec=spec, spec_hash=spec_hash(spec), content=content,
+                   assumptions=list(assumptions), version=version)
+
 
 # ---- Attack evidence payloads -------------------------------------------------
 
@@ -45,6 +64,9 @@ class TestCase(Model):
     __test__ = False  # not a pytest class
     input: str
     expected: str
+
+
+CodeTest = TestCase  # M2 vocabulary alias
 
 
 class Computation(Model):
@@ -94,6 +116,11 @@ class Verdict(Model):
     landed: bool
     actual: str = ""
     evidence: str = ""
+    # Coordinated frozen edit (A+C signed off): structured label + confidence.
+    #   code/math -> pass|fail|invalid|error|timeout|disputed|unverified
+    #   factual   -> SUPPORTED|CONTRADICTED|UNSUPPORTED|invalid|error
+    label: Optional[str] = None
+    confidence: Optional[float] = None
 
 
 class LandedBreak(Model):
@@ -121,6 +148,9 @@ class Score(Model):
 class BuildResult(Model):
     content: str
     assumptions: list[str] = []
+
+
+BuilderOutput = BuildResult  # M2 vocabulary alias
 
 
 # ---- API ----------------------------------------------------------------------

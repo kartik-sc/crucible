@@ -43,3 +43,43 @@ class Settings:
 
 
 settings = Settings()
+
+
+# ---------------------------------------------------------------------------
+# M2 swarm / verifier constants (ported from M2's orchestrator/config.py).
+# Module-level so the breakers/verifiers keep `import config; config.X`.
+# ---------------------------------------------------------------------------
+
+# --- swarm ---
+MAX_ATTACKS_PER_BREAKER = settings.max_attacks_per_breaker
+BUILDER_TEMP = float(os.getenv("BUILDER_TEMPERATURE", "0.2"))
+BREAKER_TEMPS = {"boundary": 0.8, "numeric_type": 0.9, "spec_gap": 1.0, "factual": 0.8}
+BREAKER_SEEDS = {"boundary": 11, "numeric_type": 22, "spec_gap": 33, "factual": 44}
+
+# --- token caps ---
+BUILDER_MAX_TOKENS = 1600
+BREAKER_MAX_TOKENS = 700
+REPAIR_MAX_TOKENS = 700
+LEDGER_PROMPT_CAP = 10  # survivors/landed lines shown per list in a breaker prompt
+
+# --- sandbox (SANDBOX_TIMEOUT_S falls back to M1's SANDBOX_TIMEOUT_SEC) ---
+SANDBOX_TIMEOUT_S = float(os.getenv("SANDBOX_TIMEOUT_S", os.getenv("SANDBOX_TIMEOUT_SEC", "2.0")))
+SANDBOX_MEMORY_MB = int(os.getenv("SANDBOX_MEMORY_MB", "512"))
+SANDBOX_CONCURRENCY = int(os.getenv("SANDBOX_CONCURRENCY", "4"))
+
+# --- NLI (DeBERTa MNLI-family entailment; never an LLM opinion) ---
+NLI_BACKEND = os.getenv("NLI_BACKEND", "hf")  # hf | local
+NLI_MODEL = os.getenv("NLI_MODEL", "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli")
+HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("HF_API_TOKEN", "")  # .env.example names it HF_API_TOKEN
+HF_NLI_URL = os.getenv("HF_NLI_URL", f"https://router.huggingface.co/hf-inference/models/{NLI_MODEL}")
+NLI_THRESHOLD = float(os.getenv("NLI_THRESHOLD", "0.70"))
+NLI_TOP_PASSAGES = int(os.getenv("NLI_TOP_PASSAGES", "4"))
+# UNSUPPORTED claims: False = only CONTRADICTED lands (safer against weak retrieval).
+UNSUPPORTED_LANDS = os.getenv("UNSUPPORTED_LANDS", "0") == "1"
+
+# --- oracles / differential fuzzing ---
+N_ORACLES = int(os.getenv("N_ORACLES", "2"))
+ORACLE_TEMP = 0.5
+ORACLE_SEEDS = (101, 202, 303)
+FUZZ_TIMEOUT_S = 4.0
+FUZZ_SAMPLES = 150

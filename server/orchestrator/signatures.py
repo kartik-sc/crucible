@@ -49,6 +49,11 @@ def normalize_claim(raw: str) -> str:
     return " ".join(_stem(w) for w in words if w not in _STOPWORDS)
 
 
+def claim_tokens(raw: str) -> set[str]:
+    """Normalized token set for factual passage ranking (NLI). Same normalization as the claim signature."""
+    return set(normalize_claim(raw).split())
+
+
 def signature(attack: Attack) -> str:
     if attack.test is not None:
         key = "test:" + normalize_input(attack.test.input)
