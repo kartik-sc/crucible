@@ -7,7 +7,7 @@ M3's to edit — these are the asks to coordinate.
 
 ---
 
-### #1 — `WEB_PUBLIC_API_URL` never reaches the browser · **needs M1**
+### #1 — `WEB_PUBLIC_API_URL` never reaches the browser · ✅ **resolved**
 
 Next.js only inlines `NEXT_PUBLIC_`-prefixed env vars into client code, and the SSE
 stream is consumed in the browser.
@@ -21,8 +21,9 @@ stream is consumed in the browser.
   ```
   Vercel env settings must use `NEXT_PUBLIC_API_URL` too. (TRD §6 names
   `WEB_PUBLIC_API_URL` — update there as well.)
+- [x] **Resolved:** root `.env.example` now names `NEXT_PUBLIC_API_URL`.
 
-### #2 — CORS "Vercel origin only" blocks previews + needs preflight · **needs M1**
+### #2 — CORS "Vercel origin only" blocks previews + needs preflight · ✅ **resolved**
 
 Per-PR Vercel previews get unique origins, and `POST /run` with
 `Content-Type: application/json` is not a CORS "simple request" — it triggers an
@@ -33,6 +34,10 @@ Per-PR Vercel previews get unique origins, and `POST /run` with
 - **Ask:** backend CORS should (a) allow the `*.vercel.app` preview origins (regex
   or allowlist), not a single origin, and (b) answer the `OPTIONS` preflight for
   `/run` with `Access-Control-Allow-Headers: content-type`.
+- [x] **Resolved:** `CORS_ORIGINS` holds exact origins (local + Vercel prod); an
+  `allow_origin_regex` admits only `<VERCEL_PROJECT_SLUG>-*-<VERCEL_TEAM_SLUG>.vercel.app`
+  previews, not every `*.vercel.app`. Preflight for `/run` is covered by
+  `server/tests/test_api.py`.
 
 ### #3 — SSE wire framing unspecified · **needs M1 sign-off**
 
@@ -57,7 +62,7 @@ CONTRACTS §4 lists event names + payloads but not the on-the-wire framing.
 - **Ask (optional):** M1 confirms the exact strings
   (`GENERATE FANOUT VERIFY SCORE DECIDE PATCH DONE`) so we can tighten the type.
 
-### #5 — `Verdict` can't distinguish amber vs red · **needs M1 (frontend forward-compatible)**
+### #5 — `Verdict` can't distinguish amber vs red · ✅ **resolved**
 
 TR-25 wants amber = UNSUPPORTED, red = CONTRADICTED, but both are `landed:true` and
 the NLI label only appears inside the free-text `evidence`.
@@ -74,6 +79,7 @@ the NLI label only appears inside the free-text `evidence`.
   + "evidence": "expected 0, got 1",
   + "label": "UNSUPPORTED"   // factual only; code/math omit it
   ```
+- [x] **Resolved:** CONTRACTS §0/§1 document `Verdict.label` (string; widened per #7).
 
 ### #6 — no home for the final hardened answer · **needs M1 (frontend forward-compatible)**
 
@@ -85,7 +91,7 @@ the NLI label only appears inside the free-text `evidence`.
 - **Ask (nice-to-have):** add `content` to the `DONE` payload with the full final
   artifact, so the hardened answer isn't limited to a preview.
 
-### #7 — engine emits `gated` / `fatal` / verdict `label` & `confidence` not yet in CONTRACTS · **needs M1 (Udit)**
+### #7 — engine emits `gated` / `fatal` / verdict `label` & `confidence` not yet in CONTRACTS · ✅ **resolved**
 
 The merged engine (M1) and verifiers (M2) already stream four fields that CONTRACTS §4/§1
 don't list. The frontend is forward-compatible with all four (reducer tolerates their
@@ -109,3 +115,6 @@ absence), but CONTRACTS should be updated so the wire contract matches what `/ru
     (code/math) plus `SUPPORTED | CONTRADICTED | UNSUPPORTED` (factual).
   - `Verdict.confidence` (optional, `0..1`): the verifier's confidence; code/math set it from
     the trust-gate vote, factual from the NLI score.
+- [x] **Resolved:** CONTRACTS §4 documents `DONE.reason: "gated"` and `ERROR.fatal`
+  (absent means fatal); §0/§1 document `Verdict.label` as a string (code/math values plus
+  the NLI labels) and `Verdict.confidence`.

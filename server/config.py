@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -36,11 +37,20 @@ class Settings:
     cors_origins: tuple[str, ...] = field(
         default_factory=lambda: tuple(_list("CORS_ORIGINS", "http://localhost:3000"))
     )
-    # Vercel preview deploys for this project (crucible-*.vercel.app), matched as a
-    # whole-origin regex so we never open CORS to every *.vercel.app tenant.
-    cors_origin_regex: str = os.getenv("CORS_ORIGIN_REGEX", r"https://crucible-[a-z0-9-]+\.vercel\.app")
+    # Vercel preview deploys: <project>-<hash|git-branch>-<team>.vercel.app. Both slugs
+    # are pinned so another tenant's "crucible-*" project can't match; no team = no previews.
+    vercel_project_slug: str = os.getenv("VERCEL_PROJECT_SLUG", "crucible")
+    vercel_team_slug: str = os.getenv("VERCEL_TEAM_SLUG", "")
     # Pacing for fake agents so the arena animates like a real run.
     fake_delay_sec: float = float(os.getenv("FAKE_DELAY_SEC", "0.4"))
+
+    @property
+    def cors_origin_regex(self) -> str | None:
+        """Whole-origin regex (Starlette fullmatches it) for this project's preview deploys."""
+        if not (self.vercel_project_slug and self.vercel_team_slug):
+            return None
+        project, team = re.escape(self.vercel_project_slug), re.escape(self.vercel_team_slug)
+        return rf"https://{project}-[a-z0-9-]+-{team}\.vercel\.app"
 
 
 settings = Settings()

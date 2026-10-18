@@ -16,7 +16,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
-from config import settings
+from config import Settings, settings
 from contracts import Domain, RunRequest
 from orchestrator import events as ev
 from orchestrator.loop import CrucibleRun
@@ -28,14 +28,20 @@ from orchestrator.seams import active_seams  # noqa: E402
 
 logging.getLogger("crucible").info("real seams at boot: %s", active_seams(settings))
 
+
+def add_cors(app: FastAPI, s: Settings) -> None:
+    """Exact origins from CORS_ORIGINS, plus this project's Vercel preview deploys."""
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(s.cors_origins),
+        allow_origin_regex=s.cors_origin_regex,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type"],
+    )
+
+
 app = FastAPI(title="CRUCIBLE orchestrator")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=list(settings.cors_origins),
-    allow_origin_regex=settings.cors_origin_regex,
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"],
-)
+add_cors(app, settings)
 
 SSE_HEADERS = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"}
 
