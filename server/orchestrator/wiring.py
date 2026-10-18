@@ -28,6 +28,11 @@ log = logging.getLogger(__name__)
 _GATEWAY: Any = None
 
 
+def _use_fake(settings: Settings, mock: bool = False) -> bool:
+    """Single fake-vs-real predicate. Only CRUCIBLE_AGENTS=real is real; `mock` forces fake per run."""
+    return mock or settings.agents != "real"
+
+
 def _real_gateway(settings: Settings) -> Any:
     """Process-wide gateway for real mode. DevGateway is single-key and non-rotating (see module note)."""
     global _GATEWAY
@@ -69,7 +74,7 @@ class _BreakerScaffold:
 
 
 def build_agents(domain: Domain, settings: Settings, mock: bool = False) -> Agents:
-    if mock or settings.agents == "fake":
+    if _use_fake(settings, mock):
         return fake_agents(domain, delay=settings.fake_delay_sec)
 
     from breakers.builder import Builder
@@ -90,7 +95,6 @@ def build_agents(domain: Domain, settings: Settings, mock: bool = False) -> Agen
 
 
 def get_gateway(settings: Settings) -> Any:
-    """The shared Model Gateway (exposes health()/usage when present); None in fake mode."""
-    if settings.agents == "fake":
-        return None
-    return _real_gateway(settings)
+    """The shared Model Gateway (exposes health()/usage when present); None unless agents == real.
+    Reflects the configured mode; a per-request mock=True stream never builds a gateway (see build_agents)."""
+    return None if _use_fake(settings) else _real_gateway(settings)

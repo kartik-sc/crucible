@@ -62,8 +62,8 @@ BREAKER_MAX_TOKENS = 700
 REPAIR_MAX_TOKENS = 700
 LEDGER_PROMPT_CAP = 10  # survivors/landed lines shown per list in a breaker prompt
 
-# --- sandbox (SANDBOX_TIMEOUT_S falls back to M1's SANDBOX_TIMEOUT_SEC) ---
-SANDBOX_TIMEOUT_S = float(os.getenv("SANDBOX_TIMEOUT_S", os.getenv("SANDBOX_TIMEOUT_SEC", "2.0")))
+# --- sandbox (single source: Settings.sandbox_timeout_sec reads SANDBOX_TIMEOUT_SEC) ---
+SANDBOX_TIMEOUT_S = settings.sandbox_timeout_sec
 SANDBOX_MEMORY_MB = int(os.getenv("SANDBOX_MEMORY_MB", "512"))
 SANDBOX_CONCURRENCY = int(os.getenv("SANDBOX_CONCURRENCY", "4"))
 

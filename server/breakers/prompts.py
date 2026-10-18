@@ -65,7 +65,7 @@ def build_prompt(role: str, art: Artifact, ledger: LedgerDigest | None, max_atta
                         FOCUS[(role, art.domain)]])
     cap = config.LEDGER_PROMPT_CAP
     tried = []
-    if ledger:
+    if ledger and cap > 0:  # cap <= 0 means show none ([-0:] would show the whole list)
         tried += [f"- [survived] {_fmt_attack(a)}" for a in ledger.survivors[-cap:]]
         tried += [f"- [landed earlier, since patched] {_fmt_attack(a)}" for a in ledger.landed[-cap:]]
     reqs = ("\n=== REQUIREMENTS ===\n" + "\n".join(f"R{i}: {r}" for i, r in enumerate(requirements, 1)) + "\n"

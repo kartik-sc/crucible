@@ -23,7 +23,7 @@ class BreakerStats:
     failed: int = 0            # nothing usable even after repair
     attacks_kept: int = 0
     attacks_dropped: int = 0   # schema/evidence/domain invalid
-    attacks_duplicate: int = 0
+    # (dedup against the ledger is done by M1's Coordinator, which tracks its own duplicate count)
 
     @property
     def hit_rate(self) -> float:

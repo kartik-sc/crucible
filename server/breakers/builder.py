@@ -71,8 +71,9 @@ def describe_break(lb: LandedBreak) -> str:
         return f"- calling the function with input `{a.test.input}` should give `{a.test.expected}`; it gave: {v.actual}"
     if a.computation:
         return f"- check `{a.computation.expr[:300]}` should give `{a.computation.expected}`; verifier: {v.evidence}"
-    assert a.claim_check
-    return f'- claim "{a.claim_check.claim}" is wrong; verifier: {v.evidence}'
+    if a.claim_check:
+        return f'- claim "{a.claim_check.claim}" is wrong; verifier: {v.evidence}'
+    return f"- a prior check failed; verifier: {v.evidence}"  # defensive: validator guarantees one of the above
 
 
 class Builder:

@@ -78,7 +78,14 @@ class LLMOracles:
         key = artifact.spec_hash + artifact.domain
         if key not in self._tasks:
             self._tasks[key] = asyncio.ensure_future(self._gen(artifact))
-        return list(await self._tasks[key])
+        try:
+            result = await self._tasks[key]
+        except Exception:
+            self._tasks.pop(key, None)  # don't cache a raised generation; let the next round retry
+            raise
+        if not result:
+            self._tasks.pop(key, None)  # empty (e.g. transient gateway outage) -> retry next round
+        return list(result)
 
     async def _gen(self, a: Artifact) -> list[str]:
         sys_p = SOLVER_SYS if a.domain == "math" else CODE_SYS
