@@ -31,7 +31,7 @@ B) REFUTE a claim: expr's FIRST line is "# claim: <a verbatim span from the answ
 C) ARITHMETIC LINE: expr copied verbatim from a line the answer writes as `expr = value`; expected = the CORRECT value.""",
     "factual": """EVIDENCE SCHEMA
 {"attacks":[{"rationale":"<=25 words","claimCheck":{"claim":"<ONE atomic claim copied near-verbatim from the answer, including the specific you believe is wrong>","sourceQuery":"<2-6 word encyclopedia search query>"}}]}
-Only attack claims you believe reliable sources contradict. A claim that is true will be checked against Wikipedia and earn you nothing.""",
+Prefer claims you believe reliable sources contradict. If every claim in your ROLE looks right, still submit the 1-2 most specific, most checkable ones in your ROLE: each is checked against sources, and a claim that holds up is what earns the answer trust. Never return an empty list when the answer states a checkable specific in your ROLE.""",
 }
 SHAPE = 'Wrap attacks as {"attacks":[ ... ]}.'
 
