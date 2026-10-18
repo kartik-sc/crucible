@@ -11,6 +11,19 @@ const DOMAIN_NOUN: Record<Domain, string> = {
   math: "the derivation",
 };
 
+const TAB_SIZE = 4;
+
+/** Leading whitespace width in `ch`, counting a tab as TAB_SIZE columns. */
+function indentOf(text: string): number {
+  let width = 0;
+  for (const ch of text) {
+    if (ch === " ") width += 1;
+    else if (ch === "\t") width += TAB_SIZE - (width % TAB_SIZE);
+    else break;
+  }
+  return width;
+}
+
 const GUTTER: Record<DiffLine["kind"], string> = { same: " ", added: "+", removed: "−" };
 
 const ROW: Record<DiffLine["kind"], string> = {
@@ -43,7 +56,7 @@ export function BuilderPane({
 
   return (
     <section
-      className="relative flex min-h-[300px] flex-col bg-ink-2/60 lg:min-h-0"
+      className="relative flex h-[75vh] max-h-[680px] min-h-[300px] flex-col bg-ink-2/60 lg:h-auto lg:max-h-none lg:min-h-0"
       aria-label="Builder"
     >
       {/* the hit: a red inset ring that flares and fades each time a strike lands */}
@@ -90,7 +103,7 @@ export function BuilderPane({
         </div>
       </header>
 
-      <div className="terminal-glow min-h-0 flex-1 overflow-auto py-3">
+      <div className="terminal-glow scroll-pane min-h-0 flex-1 py-3" tabIndex={0} aria-label="Builder output">
         <AnimatePresence mode="wait">
           {builder ? (
             <motion.pre
@@ -99,36 +112,59 @@ export function BuilderPane({
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
               exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
               transition={SPRING_SETTLE}
-              className="font-mono text-[13px] leading-relaxed text-bone"
+              className="font-mono text-[13px] leading-relaxed text-bone [tab-size:4]"
             >
-              {lines.map((line, i) => (
-                <motion.div
-                  key={`${line.kind}-${i}`}
-                  className={`flex gap-3 px-5 ${ROW[line.kind]}`}
-                  initial={line.kind === "same" ? false : { opacity: 0, x: -6 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ ...SPRING_SETTLE, delay: 0.25 + i * 0.03 }}
-                >
-                  {domain === "code" && (
+              {lines.map((line, i) => {
+                // Hanging indent: a wrapped line continues under its own text, not at
+                // column 0, so a long docstring keeps the code's shape. The text itself
+                // is untouched, so selecting and copying keeps the original spaces.
+                const indent = indentOf(line.text);
+                const cells = (
+                  <>
+                    {domain === "code" && (
+                      <span
+                        aria-hidden
+                        className="w-6 shrink-0 select-none text-right text-bone-faint"
+                      >
+                        {line.lineNo ?? ""}
+                      </span>
+                    )}
                     <span
                       aria-hidden
-                      className="w-5 shrink-0 select-none text-right text-bone-faint"
+                      className={[
+                        "w-3 shrink-0 select-none",
+                        line.kind === "added" ? "text-survived" : "text-struck",
+                      ].join(" ")}
                     >
-                      {line.lineNo ?? ""}
+                      {GUTTER[line.kind]}
                     </span>
-                  )}
-                  <span
-                    aria-hidden
-                    className={[
-                      "w-3 shrink-0 select-none",
-                      line.kind === "added" ? "text-survived" : "text-struck",
-                    ].join(" ")}
+                    <code
+                      className="min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]"
+                      style={{ paddingLeft: `${indent}ch`, textIndent: `-${indent}ch` }}
+                    >
+                      {line.text || " "}
+                    </code>
+                  </>
+                );
+                const className = `flex gap-3 px-5 ${ROW[line.kind]}`;
+                // Only patched lines animate, with a capped stagger, so a long answer
+                // renders at once instead of trickling in one motion node per line.
+                return line.kind === "same" ? (
+                  <div key={`${line.kind}-${i}`} className={className}>
+                    {cells}
+                  </div>
+                ) : (
+                  <motion.div
+                    key={`${line.kind}-${i}`}
+                    className={className}
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ ...SPRING_SETTLE, delay: 0.25 + Math.min(i, 20) * 0.03 }}
                   >
-                    {GUTTER[line.kind]}
-                  </span>
-                  <code className="whitespace-pre-wrap">{line.text || " "}</code>
-                </motion.div>
-              ))}
+                    {cells}
+                  </motion.div>
+                );
+              })}
             </motion.pre>
           ) : (
             <motion.p
