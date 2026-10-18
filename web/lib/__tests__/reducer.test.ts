@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { createInitialState, reduce, reduceAll } from "../reducer";
 import type { Attack, SseEvent } from "../types";
 
@@ -214,10 +214,73 @@ describe("reduce — ERROR freezes the last good version", () => {
     const s = reduce(good, { type: "ERROR", where: "gateway", message: "rate-limited" });
 
     expect(s.fsm).toBe("error");
-    expect(s.error).toEqual({ where: "gateway", message: "rate-limited" });
+    expect(s.error).toEqual({ where: "gateway", message: "rate-limited", fatal: true });
     expect(s.builder).toEqual(good.builder);
     expect(s.attacks).toEqual(good.attacks);
     expect(s.robustness).toBe(0.5);
+  });
+});
+
+describe("reduce — unknown verdict label falls back to color by landed (M3)", () => {
+  const withCode = reduce(base(), { type: "ATTACK", attack: codeAttack("c1") });
+
+  it("an opaque label ('fail') with landed → struck", () => {
+    const s = reduce(withCode, {
+      type: "VERDICT",
+      verdict: { attackId: "c1", landed: true, actual: "1", evidence: "x", label: "fail", confidence: 0.9 },
+    });
+    expect(s.attacks[0]?.verdict).toBe("struck");
+  });
+
+  it("an opaque label ('fail') without landed → survived", () => {
+    const s = reduce(withCode, {
+      type: "VERDICT",
+      verdict: { attackId: "c1", landed: false, actual: "0", evidence: "x", label: "fail", confidence: 0.2 },
+    });
+    expect(s.attacks[0]?.verdict).toBe("survived");
+  });
+});
+
+describe("reduce — orphan verdict whose ATTACK was dropped (M3)", () => {
+  it("ignores it without a ghost row and warns once", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const s = reduce(base(), {
+      type: "VERDICT",
+      verdict: { attackId: "atk_dropped", landed: true, actual: "x", evidence: "y" },
+    });
+    expect(s.attacks).toEqual([]);
+    expect(warn).toHaveBeenCalledOnce();
+    warn.mockRestore();
+  });
+});
+
+describe("reduce — DONE.reason gated (M3)", () => {
+  it("records gated as the stop reason", () => {
+    const s = reduce(base(), { type: "DONE", reason: "gated", robustness: 0.5 });
+    expect(s.fsm).toBe("done");
+    expect(s.done).toEqual({ reason: "gated", robustness: 0.5 });
+  });
+});
+
+describe("reduce — ERROR.fatal (M3)", () => {
+  const good = reduce(base(), { type: "BUILDER", version: 1, contentPreview: "v1" });
+
+  it("fatal:true ends the run (fsm → error)", () => {
+    const s = reduce(good, { type: "ERROR", where: "gateway", message: "boom", fatal: true });
+    expect(s.fsm).toBe("error");
+    expect(s.error).toEqual({ where: "gateway", message: "boom", fatal: true });
+  });
+
+  it("fatal:false is non-blocking — fsm is untouched and the run continues", () => {
+    const s = reduce(good, { type: "ERROR", where: "verifier", message: "retrying", fatal: false });
+    expect(s.fsm).toBe(good.fsm);
+    expect(s.error).toEqual({ where: "verifier", message: "retrying", fatal: false });
+  });
+
+  it("a legacy ERROR with no fatal flag stays terminal", () => {
+    const s = reduce(good, { type: "ERROR", where: "gateway", message: "boom" });
+    expect(s.fsm).toBe("error");
+    expect(s.error?.fatal).toBe(true);
   });
 });
 

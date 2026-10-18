@@ -55,6 +55,34 @@ describe("parseSseFrame", () => {
   it("drops malformed JSON instead of throwing", () => {
     expect(parseSseFrame("event: STATE\ndata: {not json}")).toBeNull();
   });
+
+  const validAttack =
+    'event: ATTACK\ndata: {"attack":{"id":"atk_1","breaker":"boundary","signature":"sha256:abc","rationale":"r","test":{"input":"0","expected":"0"}}}';
+
+  it("keeps an ATTACK that has both id and signature", () => {
+    const event = parseSseFrame(validAttack);
+    expect(event).toMatchObject({ type: "ATTACK", attack: { id: "atk_1", signature: "sha256:abc" } });
+  });
+
+  it("drops an ATTACK missing its id and logs it, without throwing", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const event = parseSseFrame(
+      'event: ATTACK\ndata: {"attack":{"breaker":"boundary","signature":"sha256:abc","rationale":"r","test":{"input":"0","expected":"0"}}}',
+    );
+    expect(event).toBeNull();
+    expect(warn).toHaveBeenCalledOnce();
+    warn.mockRestore();
+  });
+
+  it("drops an ATTACK missing its signature and logs it, without throwing", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const event = parseSseFrame(
+      'event: ATTACK\ndata: {"attack":{"id":"atk_1","breaker":"boundary","rationale":"r","test":{"input":"0","expected":"0"}}}',
+    );
+    expect(event).toBeNull();
+    expect(warn).toHaveBeenCalledOnce();
+    warn.mockRestore();
+  });
 });
 
 describe("fetchCrucibleStream", () => {

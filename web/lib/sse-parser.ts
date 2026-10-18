@@ -18,6 +18,17 @@ import { SSE_EVENT_TYPES } from "./types";
 
 const KNOWN_TYPES = new Set<string>(SSE_EVENT_TYPES);
 
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+
+/** CONTRACTS §1: an attack's `id` and `signature` are required and identify it. */
+function hasRequiredAttackFields(attack: unknown): boolean {
+  if (typeof attack !== "object" || attack === null) return false;
+  const { id, signature } = attack as { id?: unknown; signature?: unknown };
+  return isNonEmptyString(id) && isNonEmptyString(signature);
+}
+
 /**
  * Parse one SSE frame (the text between blank-line separators) into a typed event,
  * or null if it is a comment/heartbeat, an unknown event, or malformed JSON.
@@ -48,7 +59,17 @@ export function parseSseFrame(frame: string): SseEvent | null {
   }
   if (typeof payload !== "object" || payload === null) return null;
 
-  return { type: eventName as SseEventType, ...(payload as object) } as SseEvent;
+  const event = { type: eventName as SseEventType, ...(payload as object) } as SseEvent;
+
+  // The rest of the pipeline joins verdicts to attacks by id, so an ATTACK missing
+  // its required id/signature is dropped here (logged, never thrown) rather than
+  // seeding a malformed row the reducer would then try to match against.
+  if (event.type === "ATTACK" && !hasRequiredAttackFields(event.attack)) {
+    console.warn("[sse-parser] dropping ATTACK with missing id/signature", event.attack);
+    return null;
+  }
+
+  return event;
 }
 
 /**

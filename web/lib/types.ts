@@ -57,7 +57,10 @@ export interface FactualAttack extends AttackBase {
 
 export type Attack = CodeAttack | MathAttack | FactualAttack;
 
-/** NLI entailment label for factual verdicts (CONTRACTS §0). */
+/**
+ * NLI entailment labels for factual verdicts (CONTRACTS §0). These are the known
+ * constants the color grammar maps directly (see the reducer's `verdictColor`).
+ */
 export type NliLabel = "SUPPORTED" | "CONTRADICTED" | "UNSUPPORTED";
 
 export interface Verdict {
@@ -66,12 +69,13 @@ export interface Verdict {
   actual: string;
   evidence: string;
   /**
-   * Optional structured NLI label. Not yet in CONTRACTS — proposed to M1 (issue
-   * #5) so the amber-vs-red grammar (TR-25) need not be sniffed from `evidence`.
-   * The reducer prefers it when present and falls back to the string sniff when
-   * absent, so the frontend is correct either way.
+   * Free-text verdict label from the backend. The NLI values (`NliLabel`) drive the
+   * amber-vs-red grammar (TR-25); any other value (the live stream also emits e.g.
+   * "fail") is opaque and the reducer colors by `landed` instead.
    */
-  label?: NliLabel;
+  label?: string;
+  /** Verifier confidence in [0, 1], advisory only. */
+  confidence?: number;
 }
 
 /** POST /run request body (TRD §3). */
@@ -79,6 +83,9 @@ export interface RunRequest {
   query: string;
   domain: Domain;
 }
+
+/** Why a run stopped (DONE.reason). `gated` = halted by a policy gate. */
+export type DoneReason = "converged" | "max_rounds" | "gated";
 
 // ── §4 SSE events ──────────────────────────────────────────────────────────
 
@@ -103,7 +110,7 @@ export type SseEvent =
   | { type: "ROUND_END"; round: number; newBreaks: number }
   | {
       type: "DONE";
-      reason: "converged" | "max_rounds";
+      reason: DoneReason;
       robustness: number;
       /**
        * Optional full hardened answer. Not yet in CONTRACTS — proposed to M1
@@ -112,7 +119,7 @@ export type SseEvent =
        */
       content?: string;
     }
-  | { type: "ERROR"; where: string; message: string };
+  | { type: "ERROR"; where: string; message: string; fatal?: boolean };
 
 export type SseEventType = SseEvent["type"];
 
