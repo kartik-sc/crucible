@@ -62,11 +62,25 @@ describe("Arena shell", () => {
   it("seals the builder pane as the hardened answer when the run is done", () => {
     const doneState = {
       ...DEMO_STATE,
+      attacks: DEMO_STATE.attacks.map((a) =>
+        a.verdict === "struck" ? { ...a, verdict: "survived" as const } : a,
+      ),
       done: { reason: "converged" as const, robustness: 0.95 },
     };
     renderArena({ state: doneState, status: "done" });
     expect(screen.getByText("The hardened answer")).toBeInTheDocument();
     expect(screen.getByText("Hardened")).toBeInTheDocument();
+    expect(screen.getByText("3 attacks landed, all patched, 2 rounds")).toBeInTheDocument();
+  });
+
+  it("calls the run contested when a strike is still standing at the end", () => {
+    const doneState = {
+      ...DEMO_STATE,
+      done: { reason: "max_rounds" as const, robustness: 0.74 },
+    };
+    renderArena({ state: doneState, status: "done" });
+    expect(screen.getByText("Contested")).toBeInTheDocument();
+    expect(screen.getByText("3 attacks landed, 1 still standing after 2 rounds")).toBeInTheDocument();
   });
 });
 
@@ -115,5 +129,38 @@ describe("Arena — judge-live mode (TR-27)", () => {
     expect(screen.getByRole("tab", { name: "Demo" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: "Live" }));
     expect(onModeChange).toHaveBeenCalledWith("live");
+  });
+});
+
+describe("Arena — pass 2 readability", () => {
+  it("lights the current trial phase on the rail", () => {
+    renderArena(); // DEMO_STATE is mid-verify
+    const rail = screen.getByRole("navigation", { name: "Trial progress" });
+    const current = rail.querySelector('[aria-current="step"]');
+    expect(current).toHaveTextContent("Verify");
+  });
+
+  it("expands an attack into its evidence receipt", () => {
+    renderArena();
+    fireEvent.click(screen.getByRole("button", { name: /n=0 edge case/ }));
+    expect(screen.getByText("Expected")).toBeInTheDocument();
+    expect(screen.getByText("expected 0, got 1")).toBeInTheDocument();
+  });
+
+  it("offers Replay on the final verdict", () => {
+    const onRetry = vi.fn();
+    const doneState = { ...DEMO_STATE, done: { reason: "converged" as const, robustness: 0.95 } };
+    renderArena({ state: doneState, status: "done", onRetry });
+    fireEvent.click(screen.getByRole("button", { name: "Replay" }));
+    expect(onRetry).toHaveBeenCalledOnce();
+  });
+
+  it("replays on R, but not while typing in the query", () => {
+    const onRetry = vi.fn();
+    renderArena({ onRetry });
+    fireEvent.keyDown(screen.getByDisplayValue(DEMO_STATE.query), { key: "r" });
+    expect(onRetry).not.toHaveBeenCalled();
+    fireEvent.keyDown(window, { key: "r" });
+    expect(onRetry).toHaveBeenCalledOnce();
   });
 });

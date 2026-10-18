@@ -20,6 +20,24 @@
   --survived: #46d9a0;
   --unsupported: #e0a94a;
   --struck: #e5484d;
+
+  /* fight-card corners borrow the verdict grammar: the Builder wins what
+     survives, the Swarm wins what is struck */
+  --builder: var(--survived);
+  --swarm: var(--struck);
+
+  /* the same tokens as RGB channels, so Tailwind opacity modifiers
+     (bg-ink-2/60, border-struck/40 …) actually compile */
+  --c-ink: 11 14 20;
+  --c-ink-2: 17 21 31;
+  --c-ink-3: 25 32 46;
+  --c-bone: 233 227 212;
+  --c-bone-dim: 150 155 171;
+  --c-bone-faint: 92 98 115;
+  --c-accent: 224 169 74;
+  --c-survived: 70 217 160;
+  --c-unsupported: 224 169 74;
+  --c-struck: 229 72 77;
 }
 
 * {
@@ -49,9 +67,46 @@ body::before {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  opacity: 0.035;
+  opacity: 0.05;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* the arena floor: a very faint measured grid that breathes from the centre
+   (a CSS take on React Bits' Ripple Grid, without a WebGL dependency) */
+.arena-floor {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(233, 227, 212, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(233, 227, 212, 0.035) 1px, transparent 1px);
+  background-size: 56px 56px;
+  background-position: center top;
+  -webkit-mask-image: radial-gradient(ellipse 70% 55% at 50% 30%, #000 0%, transparent 75%);
+  mask-image: radial-gradient(ellipse 70% 55% at 50% 30%, #000 0%, transparent 75%);
+  animation: floor-breathe 9s ease-in-out infinite;
+}
+
+@keyframes floor-breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+/* faint scanlines + phosphor glow for terminal panels */
+.terminal-glow {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(233, 227, 212, 0.018) 0,
+    rgba(233, 227, 212, 0.018) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.text-glow {
+  text-shadow: 0 0 18px color-mix(in srgb, currentColor 45%, transparent);
 }
 
 /* ledger hairline — a thin ruled line used to separate evidence rows */
