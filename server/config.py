@@ -11,7 +11,8 @@ from contracts import WEAKNESS_CLASSES
 try:  # local dev convenience; Render injects env directly
     from dotenv import load_dotenv
 
-    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+    load_dotenv(Path(__file__).resolve().parent / ".env")         # server/.env (local; keys live here)
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")  # repo-root .env (fallback)
 except ImportError:  # pragma: no cover
     pass
 
@@ -43,6 +44,21 @@ class Settings:
 
 
 settings = Settings()
+
+
+# ---------------------------------------------------------------------------
+# Per-seam real switches (read once at startup; default fake). Let a single seam
+# go real at a time for incremental local bring-up on DevGateway. CRUCIBLE_AGENTS=real
+# still turns everything real. See orchestrator/seams.py and .env.example.
+# ---------------------------------------------------------------------------
+USE_REAL_BUILDER = os.getenv("USE_REAL_BUILDER", "0") == "1"
+USE_REAL_BREAKERS = tuple(_list("USE_REAL_BREAKERS", ""))  # comma list of roles, e.g. "boundary"
+USE_REAL_PYEXEC = os.getenv("USE_REAL_PYEXEC", "0") == "1"
+USE_REAL_NLI = os.getenv("USE_REAL_NLI", "0") == "1"
+DEMO_ARTIFACT = os.getenv("DEMO_ARTIFACT", "")  # a key in demo.artifacts.ALL; else first matching the domain
+# With USE_REAL_BUILDER=1, seed v0 from the planted flawed artifact so a real breaker has a flaw to land
+# and the REAL builder generates the patch from the landed verdict (generate is seeded; patch is real).
+SEED_FLAWED = os.getenv("SEED_FLAWED", "0") == "1"
 
 
 # ---------------------------------------------------------------------------

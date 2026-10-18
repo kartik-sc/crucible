@@ -2,14 +2,16 @@
 import json
 import re
 
-_THINK = re.compile(r"<think>.*?</think>", re.S)
+_THINK = re.compile(r"<(?:think|thought)>.*?</(?:think|thought)>", re.S)
+_THINK_OPEN = re.compile(r"<(?:think|thought)>")
 _FENCE = re.compile(r"```[a-zA-Z0-9_+-]*[ \t]*\n(.*?)```", re.S)
 
 
 def strip_think(t: str) -> str:
     t = _THINK.sub("", t)
-    if "<think>" in t:                 # unclosed (truncated) reasoning
-        t = t.split("<think>")[0]
+    m = _THINK_OPEN.search(t)          # unclosed (truncated) reasoning: drop from the open tag
+    if m:
+        t = t[: m.start()]
     return t.strip()
 
 
