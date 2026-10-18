@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import type { ArenaState } from "@/lib/view-model";
-import { FSM_LABEL } from "@/lib/ui";
+import { DONE_REASON_LABEL, FSM_LABEL } from "@/lib/ui";
 import { EASE_OUT } from "@/lib/motion";
 
 export function RoundTimeline({ state }: { state: ArenaState }) {
@@ -10,6 +10,10 @@ export function RoundTimeline({ state }: { state: ArenaState }) {
   const dots = Array.from({ length: maxRounds }, (_, i) => i + 1);
   const breaksByRound = new Map(rounds.map((r) => [r.round, r.newBreaks]));
   const running = fsm !== "done" && fsm !== "idle" && fsm !== "error";
+  // Once the run stops, the status slot names why it stopped (gated/converged/…)
+  // rather than the generic terminal FSM label.
+  const statusKey = state.done ? state.done.reason : fsm;
+  const statusLabel = state.done ? DONE_REASON_LABEL[state.done.reason] : FSM_LABEL[fsm];
 
   return (
     <div className="flex items-center justify-between gap-6 px-6 py-4">
@@ -49,14 +53,14 @@ export function RoundTimeline({ state }: { state: ArenaState }) {
         {running && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-accent" />}
         <AnimatePresence mode="wait">
           <motion.span
-            key={fsm}
+            key={statusKey}
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.25, ease: EASE_OUT }}
             className="font-sans text-[11px] uppercase tracking-label text-bone-dim"
           >
-            {FSM_LABEL[fsm]}
+            {statusLabel}
           </motion.span>
         </AnimatePresence>
       </div>

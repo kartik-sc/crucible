@@ -66,7 +66,9 @@ export function useCrucibleStream(
         } catch (err) {
           if (!controller.signal.aborted) {
             const message = err instanceof Error ? err.message : "stream failed";
-            setState((prev) => reduce(prev, { type: "ERROR", where: "stream", message }));
+            setState((prev) =>
+              reduce(prev, { type: "ERROR", where: "stream", message, fatal: true }),
+            );
           }
         } finally {
           if (abortRef.current === controller) {
@@ -81,7 +83,8 @@ export function useCrucibleStream(
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  const status: RunStatus = state.error
+  // A non-fatal ERROR is a notice, not a stopped run — only a fatal one ends it.
+  const status: RunStatus = state.error?.fatal
     ? "error"
     : state.done
       ? "done"

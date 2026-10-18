@@ -84,3 +84,28 @@ the NLI label only appears inside the free-text `evidence`.
   also honors an optional `DONE.content` if present.
 - **Ask (nice-to-have):** add `content` to the `DONE` payload with the full final
   artifact, so the hardened answer isn't limited to a preview.
+
+### #7 — engine emits `gated` / `fatal` / verdict `label` & `confidence` not yet in CONTRACTS · **needs M1 (Udit)**
+
+The merged engine (M1) and verifiers (M2) already stream four fields that CONTRACTS §4/§1
+don't list. The frontend is forward-compatible with all four (reducer tolerates their
+absence), but CONTRACTS should be updated so the wire contract matches what `/run` emits.
+
+- **Done (web):** `web/lib/types.ts` carries `DONE.reason … | "gated"`, `ERROR.fatal?`,
+  `Verdict.label?` and `Verdict.confidence?`; the reducer ignores them when absent.
+- **Ask (M1 / Udit) — add to CONTRACTS §4 / §1:**
+  - `DONE.reason`: add `"gated"` (Heavy-Answer Gate skipped the loop; `robustness` is `null`).
+    ```diff
+    - DONE  { reason: "converged" | "max_rounds", robustness }
+    + DONE  { reason: "converged" | "max_rounds" | "gated", robustness }
+    ```
+  - `ERROR`: add `fatal` (`true` = run stopped, ERROR is the last event; `false` = degraded, run continues).
+    ```diff
+    - ERROR { where, message }
+    + ERROR { where, message, fatal }
+    ```
+  - `Verdict.label`: widen beyond the factual NLI set (ask #5) to the code/math values the
+    verifiers emit — `pass | fail | invalid | error | timeout | disputed | unverified`
+    (code/math) plus `SUPPORTED | CONTRADICTED | UNSUPPORTED` (factual).
+  - `Verdict.confidence` (optional, `0..1`): the verifier's confidence; code/math set it from
+    the trust-gate vote, factual from the NLI score.

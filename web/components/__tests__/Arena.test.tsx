@@ -80,13 +80,34 @@ describe("Arena — live-mode states", () => {
     const onRetry = vi.fn();
     const errorState = {
       ...DEMO_STATE,
-      error: { where: "gateway", message: "rate-limited" },
+      error: { where: "gateway", message: "rate-limited", fatal: true },
     };
     renderArena({ state: errorState, status: "error", onRetry });
     expect(screen.getByText("Stream interrupted")).toBeInTheDocument();
     expect(screen.getByText("gateway: rate-limited")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(onRetry).toHaveBeenCalledOnce();
+  });
+
+  it("shows a non-blocking notice (no Retry) for a non-fatal error while the run continues", () => {
+    const noticeState = {
+      ...DEMO_STATE,
+      error: { where: "verifier", message: "retrying", fatal: false },
+    };
+    renderArena({ state: noticeState, status: "running" });
+    expect(screen.getByText("Recovered")).toBeInTheDocument();
+    expect(screen.getByText("verifier: retrying")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+  });
+
+  it("names the stop reason when a run is gated", () => {
+    const gatedState = {
+      ...DEMO_STATE,
+      fsm: "done" as const,
+      done: { reason: "gated" as const, robustness: 0.5 },
+    };
+    renderArena({ state: gatedState, status: "done" });
+    expect(screen.getByText("Gated")).toBeInTheDocument();
   });
 
   it("replaces the panes with an invitation when live and idle", () => {
