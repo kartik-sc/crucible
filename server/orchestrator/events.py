@@ -10,7 +10,9 @@ EventType = Literal["STATE", "BUILDER", "ATTACK", "VERDICT", "SCORE", "ROUND_END
 State = Literal["GENERATE", "FANOUT", "VERIFY", "SCORE", "DECIDE", "PATCH", "DONE"]
 DoneReason = Literal["converged", "max_rounds", "gated"]
 
-PREVIEW_CHARS = 400
+# Guard against runaway output only: the arena renders the builder's full answer, so a
+# tight cap (it was 400) cut real answers off mid-line.
+PREVIEW_CHARS = 20_000
 
 
 @dataclass(frozen=True)
@@ -46,8 +48,12 @@ def round_end(round_no: int, new_breaks: int) -> Event:
     return Event("ROUND_END", {"round": round_no, "newBreaks": new_breaks})
 
 
-def done(reason: DoneReason, robustness: float | None) -> Event:
-    return Event("DONE", {"reason": reason, "robustness": robustness})
+def done(reason: DoneReason, robustness: float | None, content: str | None = None) -> Event:
+    """`content` is the full, uncapped hardened answer (contract ask #6)."""
+    data: dict[str, Any] = {"reason": reason, "robustness": robustness}
+    if content is not None:
+        data["content"] = content
+    return Event("DONE", data)
 
 
 def error(where: str, message: str, fatal: bool) -> Event:
