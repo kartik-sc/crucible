@@ -11,20 +11,22 @@ const config: Config = {
     extend: {
       colors: {
         ink: {
-          DEFAULT: "var(--ink)",
-          2: "var(--ink-2)",
-          3: "var(--ink-3)",
+          DEFAULT: "rgb(var(--c-ink) / <alpha-value>)",
+          2: "rgb(var(--c-ink-2) / <alpha-value>)",
+          3: "rgb(var(--c-ink-3) / <alpha-value>)",
         },
         bone: {
-          DEFAULT: "var(--bone)",
-          dim: "var(--bone-dim)",
-          faint: "var(--bone-faint)",
+          DEFAULT: "rgb(var(--c-bone) / <alpha-value>)",
+          dim: "rgb(var(--c-bone-dim) / <alpha-value>)",
+          faint: "rgb(var(--c-bone-faint) / <alpha-value>)",
         },
         hairline: "var(--hairline)",
-        accent: "var(--accent)",
-        survived: "var(--survived)",
-        unsupported: "var(--unsupported)",
-        struck: "var(--struck)",
+        accent: "rgb(var(--c-accent) / <alpha-value>)",
+        survived: "rgb(var(--c-survived) / <alpha-value>)",
+        unsupported: "rgb(var(--c-unsupported) / <alpha-value>)",
+        struck: "rgb(var(--c-struck) / <alpha-value>)",
+        builder: "rgb(var(--c-survived) / <alpha-value>)",
+        swarm: "rgb(var(--c-struck) / <alpha-value>)",
       },
       fontFamily: {
         serif: ["var(--font-serif)", "Georgia", "serif"],

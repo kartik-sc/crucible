@@ -1,5 +1,15 @@
+import {
+  BetweenHorizontalStart,
+  Binary,
+  BookOpen,
+  BookOpenCheck,
+  Braces,
+  FileQuestion,
+  Sigma,
+  type LucideIcon,
+} from "lucide-react";
 import type { DoneReason } from "./types";
-import type { FsmState, VerdictColor } from "./view-model";
+import type { Domain, FsmState, VerdictColor, WeaknessClass } from "./view-model";
 
 interface VerdictMeta {
   label: string;
@@ -38,4 +48,52 @@ export const DONE_REASON_LABEL: Record<DoneReason, string> = {
 export function formatRobustness(value: number | null): string {
   if (value === null) return "—";
   return value.toFixed(2);
+}
+
+// ── icon language ──────────────────────────────────────────────────────────
+
+/** One static glyph per breaker class, so the swarm reads at a glance. */
+export const BREAKER_ICON: Record<WeaknessClass, LucideIcon> = {
+  boundary: BetweenHorizontalStart,
+  numeric_type: Binary,
+  spec_gap: FileQuestion,
+  factual: BookOpenCheck,
+};
+
+export const DOMAIN_ICON: Record<Domain, LucideIcon> = {
+  code: Braces,
+  factual: BookOpen,
+  math: Sigma,
+};
+
+// ── the phase rail ─────────────────────────────────────────────────────────
+
+export type Phase = "draft" | "attack" | "verify" | "patch" | "verdict";
+
+export const PHASES: readonly { id: Phase; label: string; hint: string }[] = [
+  { id: "draft", label: "Draft", hint: "The Builder writes an answer" },
+  { id: "attack", label: "Attack", hint: "The Swarm tries to break it" },
+  { id: "verify", label: "Verify", hint: "A verifier runs every attack" },
+  { id: "patch", label: "Patch", hint: "The Builder fixes what landed" },
+  { id: "verdict", label: "Verdict", hint: "Only what survived ships" },
+];
+
+/** Which rail step an FSM state belongs to (null before a run starts). */
+export function phaseOf(fsm: FsmState): Phase | null {
+  switch (fsm) {
+    case "generate":
+      return "draft";
+    case "fanout":
+      return "attack";
+    case "verify":
+    case "score":
+    case "decide":
+      return "verify";
+    case "patch":
+      return "patch";
+    case "done":
+      return "verdict";
+    default:
+      return null;
+  }
 }

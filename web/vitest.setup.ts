@@ -22,3 +22,22 @@ if (!("ResizeObserver" in globalThis)) {
     disconnect() {}
   };
 }
+
+// jsdom has no canvas. React Bits' Click Spark and Decrypted Text measure/draw
+// with a 2D context and degrade gracefully when there isn't one.
+HTMLCanvasElement.prototype.getContext = (() => null) as typeof HTMLCanvasElement.prototype.getContext;
+
+// jsdom has no IntersectionObserver; Number Ticker and Decrypted Text use in-view triggers.
+if (!("IntersectionObserver" in globalThis)) {
+  globalThis.IntersectionObserver = class {
+    readonly root = null;
+    readonly rootMargin = "";
+    readonly thresholds = [];
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+      return [];
+    }
+  } as unknown as typeof IntersectionObserver;
+}

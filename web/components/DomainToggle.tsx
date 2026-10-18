@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import type { Domain } from "@/lib/view-model";
 import { DOMAINS } from "@/lib/view-model";
+import { DOMAIN_ICON } from "@/lib/ui";
 
 const LABELS: Record<Domain, string> = {
   code: "Code",
@@ -27,6 +28,7 @@ export function DomainToggle({
     >
       {DOMAINS.map((domain) => {
         const isActive = domain === value;
+        const Icon = DOMAIN_ICON[domain];
         return (
           <button
             key={domain}
@@ -48,7 +50,10 @@ export function DomainToggle({
                 transition={{ type: "spring", stiffness: 420, damping: 34 }}
               />
             )}
-            <span className="relative z-10">{LABELS[domain]}</span>
+            <span className="relative z-10 flex items-center gap-1.5">
+              <Icon className="h-3.5 w-3.5" aria-hidden />
+              {LABELS[domain]}
+            </span>
           </button>
         );
       })}

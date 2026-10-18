@@ -6,6 +6,7 @@ const serif = Fraunces({
   subsets: ["latin"],
   variable: "--font-serif",
   display: "swap",
+  style: ["normal", "italic"],
   axes: ["opsz"],
 });
 
@@ -57,7 +58,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${serif.variable} ${sans.variable} ${mono.variable}`}>
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <div aria-hidden className="arena-floor" />
+        {children}
+      </body>
     </html>
   );
 }
