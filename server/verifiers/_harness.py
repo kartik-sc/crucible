@@ -171,6 +171,8 @@ def _judge(call, exp, ns):
     except BaseException as e:
         raised, tb = e, e.__traceback__
     info = {} if raised is None else {"exc": type(raised).__name__, "explicit": _explicit(tb)}
+    if re.fullmatch(r"[A-Z]\w*(?:Error|Exception)", exp):  # bare "TypeError" means "raises TypeError"
+        exp = "raises " + exp
     m = re.match(r"(?is)raises\b\s*:?\s*(\w+)?\s*$", exp)
     if m:
         want = m.group(1)

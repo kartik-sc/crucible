@@ -273,6 +273,10 @@ class PyExecVerifier:
         outcome, conf = tally(agree, mirror, dissent)
         n = len(results)
         lab = "timeout" if a["status"] == "timeout" else "fail"
+        if a["status"] == "timeout" and outcome in ("unverified", "disputed"):
+            # No independent implementation finished within the limit either: a slow or
+            # overloaded sandbox, not evidence of a break. Unsettled, so it doesn't score.
+            return mk(False, "indeterminate", a_act, f"{fail_txt} · no independent implementation finished in time", conf)
         if outcome == "landed":
             return mk(True, lab, a_act, f"{fail_txt} · {agree}/{n} independent implementation(s) agree with the expectation", conf)
         if outcome == "unverified":

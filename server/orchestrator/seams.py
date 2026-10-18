@@ -140,6 +140,18 @@ class _ScriptedVerifier:
                        evidence="(scripted fallback: verifier seam is fake — enable USE_REAL_PYEXEC/USE_REAL_NLI)")
 
 
+class _DemoThenLLMOracles:
+    """Planted oracles for the demo spec; generated ones for any other query. Without
+    oracles every artifact failure lands 'unverified', so a wrong attack counts as a break."""
+
+    def __init__(self, fixed: Any, llm: Any) -> None:
+        self.fixed, self.llm = fixed, llm
+
+    async def impls(self, artifact: Artifact) -> list[str]:
+        got = await self.fixed.impls(artifact) if self.fixed else []
+        return got or (await self.llm.impls(artifact) if self.llm else [])
+
+
 class _MixedBreaker:
     """Real M2 breaker for roles in `roles`; the demo fallback for the rest."""
 
@@ -182,10 +194,12 @@ def compose(domain: Domain, settings, gateway_factory: Callable[[], Any]) -> Age
     breaker: Any = _MixedBreaker(domain, gateway, real.roles, fallback_breaker) if real.roles else fallback_breaker
 
     if real.pyexec:
-        from breakers.oracles import FixedOracles
+        from breakers.oracles import FixedOracles, LLMOracles
         from verifiers.pyexec import PyExecVerifier
 
-        oracles = FixedOracles({demo.spec: demo.oracles}) if demo.oracles else None
+        fixed = FixedOracles({demo.spec: demo.oracles}) if demo.oracles else None
+        llm = LLMOracles(gateway) if gateway is not None else None
+        oracles = _DemoThenLLMOracles(fixed, llm) if (fixed or llm) else None
         code_verifier: Any = PyExecVerifier(oracles=oracles)
     else:
         code_verifier = _ScriptedVerifier()

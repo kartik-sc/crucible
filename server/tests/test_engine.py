@@ -308,3 +308,34 @@ def test_partly_dead_swarm_with_no_attacks_is_never_reported_as_converged():
     evs = run_events("code", agents)
     assert evs[-1].type == "ERROR" and evs[-1].data["fatal"] and evs[-1].data["where"] == "fanout"
     assert "DONE" not in types(evs)
+
+
+def test_verifier_indeterminate_label_is_unsettled():
+    class Unsure:
+        def verify(self, artifact, attack):
+            return Verdict(attack_id=attack.id, landed=False, label="indeterminate", evidence="sandbox too slow")
+
+    r = route(Unsure(), atk(id="atk_1", test={"input": "0", "expected": "0"}))
+    assert not r.settled and "sandbox too slow" in r.verdict.evidence
+
+
+def test_sandbox_timeout_nobody_could_beat_is_not_a_break(monkeypatch):
+    import config
+    from verifiers.pyexec import PyExecVerifier
+
+    monkeypatch.setattr(config, "SANDBOX_TIMEOUT_S", 0.5)
+    art = Artifact.make("code", "Write is_palindrome(s).", "def is_palindrome(s):\n    while True:\n        pass\n")
+    a = atk(id="atk_t", test={"input": "''", "expected": "True"})
+    r = asyncio.run(VerifierRouter({"test": PyExecVerifier(oracles=None)}, 8).verify(art, a))
+    assert not r.settled and not r.verdict.landed
+
+
+def test_bare_exception_name_expectation_matches_a_raise():
+    # live: expected "TypeError", got "raised TypeError" was scored as a landed break
+    from verifiers.pyexec import PyExecVerifier
+
+    art = Artifact.make("code", "Write is_palindrome(s).",
+                        "def is_palindrome(s):\n    if not isinstance(s, str):\n        raise TypeError('s must be a string')\n    return True\n")
+    a = atk(id="atk_e", test={"input": "[1, 2, 3]", "expected": "TypeError"})
+    r = asyncio.run(VerifierRouter({"test": PyExecVerifier(oracles=None)}, 8).verify(art, a))
+    assert r.settled and not r.verdict.landed
