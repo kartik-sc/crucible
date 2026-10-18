@@ -78,7 +78,7 @@ def test_gated_answer_skips_loop():
     sc.versions[0] = "Paris."
     evs = run_events("factual", fake_agents("factual", scenario=sc))
     assert types(evs) == ["STATE", "BUILDER", "STATE", "DONE"]
-    assert evs[-1].data == {"reason": "gated", "robustness": None}
+    assert evs[-1].data == {"reason": "gated", "robustness": None, "content": "Paris."}
 
 
 # ---- ledger (TR-9) -------------------------------------------------------------------------

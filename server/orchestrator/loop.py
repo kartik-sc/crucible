@@ -76,7 +76,7 @@ class CrucibleRun:
 
         if not is_heavy(self.domain, built.content):  # TR-3: answer once, skip the loop
             yield ev.state("DONE", 1)
-            yield ev.done("gated", None)
+            yield ev.done("gated", None, self.artifact.content)
             return
 
         for round_no in range(1, self.settings.max_rounds + 1):
@@ -114,7 +114,9 @@ class CrucibleRun:
             if not failing or round_no == self.settings.max_rounds:
                 yield ev.round_end(round_no, new_breaks)
                 yield ev.state("DONE", round_no)
-                yield ev.done("converged" if not failing else "max_rounds", s.robustness)
+                yield ev.done(
+                    "converged" if not failing else "max_rounds", s.robustness, self.artifact.content
+                )
                 return
 
             # ---- PATCH (one batched, delta-only call: failing tests + actuals only)

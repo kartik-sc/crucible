@@ -25,6 +25,9 @@ def test_run_streams_until_done():
     evs = parse_sse(r.text)
     assert evs[0] == ("STATE", {"state": "GENERATE", "round": 1})
     assert evs[-1][0] == "DONE" and evs[-1][1]["reason"] == "converged"
+    # The final event carries the full hardened answer, not a preview.
+    last_builder = [d for e, d in evs if e == "BUILDER"][-1]
+    assert evs[-1][1]["content"].startswith(last_builder["contentPreview"])
 
 
 def test_mock_get_is_eventsource_friendly():
@@ -81,3 +84,12 @@ def test_cors_preflight_rejects_foreign_origins():
 
 def test_no_team_slug_means_no_preview_regex():
     assert Settings(vercel_team_slug="").cors_origin_regex is None
+
+
+def test_builder_and_done_carry_long_answers_whole():
+    from orchestrator import events as ev
+
+    long = "def f():\n" + '    """' + "x" * 3000 + '"""\n    return 1\n'
+    assert ev.builder(1, long).data["contentPreview"] == long
+    assert ev.done("converged", 1.0, long).data["content"] == long
+    assert "content" not in ev.done("gated", None).data
