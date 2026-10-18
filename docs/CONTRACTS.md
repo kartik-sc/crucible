@@ -16,8 +16,15 @@ canonical; keep both sides in sync with it.
 ```
 Domain        = "code" | "factual" | "math"
 WeaknessClass = "boundary" | "numeric_type" | "spec_gap" | "factual"
-Verdict.label (code/math) = "pass" | "fail"
-NLI.label     (factual)   = "SUPPORTED" | "CONTRADICTED" | "UNSUPPORTED"
+Verdict.label (code/math) = "pass" | "fail" | "invalid" | "error" | "timeout" | "disputed" | "unverified"
+Verdict.label (factual)   = "SUPPORTED" | "CONTRADICTED" | "UNSUPPORTED" | "invalid" | "error"
+```
+
+`Verdict.label` is typed as a plain **string** on the wire (Pydantic `Optional[str]`), not
+a closed enum: consumers must tolerate values outside these lists and fall back to
+`landed`.
+
+```
 ```
 
 ---
@@ -88,9 +95,19 @@ class Artifact(BaseModel):
   "attackId": "atk_7f3",
   "landed": true,                   // true = the attack broke the artifact
   "actual": "1",                    // what actually happened
-  "evidence": "expected 0, got 1"   // human-readable, shown in UI
+  "evidence": "expected 0, got 1",  // human-readable, shown in UI
+  "label": "fail",                  // optional string; see §0 (factual: NLI label)
+  "confidence": 0.92                // optional, 0..1
 }
 ```
+
+- **`label`** (optional string): the verifier's structured ruling. Code/math emit
+  `pass | fail | invalid | error | timeout | disputed | unverified`; factual emits the
+  NLI label `SUPPORTED | CONTRADICTED | UNSUPPORTED` (or `invalid | error`). This is
+  what separates amber (`UNSUPPORTED`) from red (`CONTRADICTED`) when both are
+  `landed: true`. Absent → derive from `landed`.
+- **`confidence`** (optional float, `0..1`): code/math from the trust-gate vote,
+  factual from the NLI entailment score. Absent → unknown, not zero.
 
 ---
 
@@ -154,7 +171,9 @@ Stream semantics (M1, pending sign-off from B and C):
   skipped. `robustness` is `null` (nothing was attacked).
 - **`fatal`**: `false` = something degraded but the run continues (e.g. one breaker
   died, `where: "breaker:<role>"`). `true` = the run stopped; ERROR is the last
-  event and the last BUILDER version is the last good one.
+  event and the last BUILDER version is the last good one. **Absent means fatal**:
+  consumers treat an ERROR without `fatal` as `fatal: true` (the orchestrator always
+  sends it; this keeps legacy/foreign emitters safe).
 - **VERDICT re-emits**: from round 2, VERIFY re-runs every attack in the ledger
   against the patched version. A VERDICT can therefore arrive for an `attackId`
   already shown; update that row in place (struck → green = the patch fixed it).
